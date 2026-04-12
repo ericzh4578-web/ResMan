@@ -1,0 +1,80 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Native Case"
+    },
+    {
+      "name": "sample_title",
+      "value": "Native Sample Code"
+    },
+    {
+      "name": "work_button",
+      "value": "Synchronous/Asynchronous Tasks"
+    },
+    {
+      "name": "work_title",
+      "value": "Synchronous/Asynchronous Tasks"
+    },
+    {
+      "name": "work_title_desc",
+      "value": "Read file information"
+    },
+    {
+      "name": "calculation_text_desc",
+      "value": "Value calculation result:"
+    },
+    {
+      "name": "thread_com_button",
+      "value": "Communication Between Native Child Threads and Main Thread"
+    },
+    {
+      "name": "thread_com_title",
+      "value": "Communication Between Native Child Threads and Main Thread"
+    },
+    {
+      "name": "thread_com_title_desc",
+      "value": "Call back the UI main thread in the native child thread"
+    },
+    {
+      "name": "thread_com_toast",
+      "value": "Add 30 in invocation via a thread-safe function"
+    },
+    {
+      "name": "lib_uv_toast",
+      "value": "Add 30 in invocation via libuv"
+    },
+    {
+      "name": "read_text_desc",
+      "value": "The file reading result is displayed here."
+    },
+    {
+      "name": "sync_callback_button",
+      "value": "Synchronous Callback"
+    },
+    {
+      "name": "async_callback_button",
+      "value": "Asynchronous Callback"
+    },
+    {
+      "name": "async_promise_button",
+      "value": "Asynchronous Promise"
+    },
+    {
+      "name": "thread_safe_func_button",
+      "value": "Invoke via Thread-Safe Function"
+    },
+    {
+      "name": "lib_uv_method_button",
+      "value": "Invoke via libuv"
+    }
+  ]
+}

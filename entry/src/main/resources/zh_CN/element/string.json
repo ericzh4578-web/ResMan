@@ -1,0 +1,80 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "模块描述"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Native Case"
+    },
+    {
+      "name": "sample_title",
+      "value": "Native 示例代码"
+    },
+    {
+      "name": "work_button",
+      "value": "同步/异步任务"
+    },
+    {
+      "name": "work_title",
+      "value": "同步/异步任务"
+    },
+    {
+      "name": "work_title_desc",
+      "value": "读取文件信息"
+    },
+    {
+      "name": "thread_com_button",
+      "value": "Native子线程与主线程通信"
+    },
+    {
+      "name": "thread_com_title",
+      "value": "Native子线程与主线程通信"
+    },
+    {
+      "name": "thread_com_title_desc",
+      "value": "在Native子线程中回调UI主线程"
+    },
+    {
+      "name": "thread_com_toast",
+      "value": "线程安全函数方式执行加30操作"
+    },
+    {
+      "name": "lib_uv_toast",
+      "value": "LibUV异步库方式执行加30操作"
+    },
+    {
+      "name": "read_text_desc",
+      "value": "此处显示文件读取结果！"
+    },
+    {
+      "name": "calculation_text_desc",
+      "value": "Value计算结果："
+    },
+    {
+      "name": "sync_callback_button",
+      "value": "同步Callback方式"
+    },
+    {
+      "name": "async_callback_button",
+      "value": "异步Callback方式"
+    },
+    {
+      "name": "async_promise_button",
+      "value": "异步Promise方式"
+    },
+    {
+      "name": "thread_safe_func_button",
+      "value": "线程安全函数方式调用"
+    },
+    {
+      "name": "lib_uv_method_button",
+      "value": "LibUV异步库方式调用"
+    }
+  ]
+}

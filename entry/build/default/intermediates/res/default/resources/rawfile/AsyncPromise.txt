@@ -1,0 +1,1 @@
+In asynchronous promise mode, the application side needs to pass the callback function. After the application side invokes the native interface, the native side also asynchronously executes the service logic, without blocking the application side.
