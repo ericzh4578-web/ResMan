@@ -75,6 +75,10 @@
     {
       "name": "lib_uv_method_button",
       "value": "LibUV异步库方式调用"
+    },
+    {
+      "name": "permission_read_media_reason",
+      "value": "需要读取媒体文件以进行视频解码"
     }
   ]
 }

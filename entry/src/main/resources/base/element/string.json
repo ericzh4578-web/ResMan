@@ -75,6 +75,10 @@
     {
       "name": "lib_uv_method_button",
       "value": "Invoke via libuv"
+    },
+    {
+      "name": "permission_read_media_reason",
+      "value": "Required to read media files for video decoding"
     }
   ]
 }

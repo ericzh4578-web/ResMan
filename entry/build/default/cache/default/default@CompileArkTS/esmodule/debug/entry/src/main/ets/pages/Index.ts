@@ -6,6 +6,7 @@ interface Index_Params {
 }
 import { SubMainThreadCom } from "@normalized:N&&&entry/src/main/ets/pages/SubMainThreadCom&";
 import { SyncAndAsyncWork } from "@normalized:N&&&entry/src/main/ets/pages/SyncAndAsyncWork&";
+import { VideoDecoderPage } from "@normalized:N&&&entry/src/main/ets/pages/VideoDecoderPage&";
 class Index extends ViewPU {
     constructor(parent, params, __localStorage, elmtId = -1, paramsLambda = undefined, extraInfo) {
         super(parent, __localStorage, elmtId, extraInfo);
@@ -47,7 +48,7 @@ class Index extends ViewPU {
                     {
                         this.observeComponentCreation2((elmtId, isInitialRender) => {
                             if (isInitialRender) {
-                                let componentCall = new SyncAndAsyncWork(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 27, col: 7 });
+                                let componentCall = new SyncAndAsyncWork(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 28, col: 7 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {};
@@ -66,7 +67,7 @@ class Index extends ViewPU {
                     {
                         this.observeComponentCreation2((elmtId, isInitialRender) => {
                             if (isInitialRender) {
-                                let componentCall = new SubMainThreadCom(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 29, col: 7 });
+                                let componentCall = new SubMainThreadCom(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 30, col: 7 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {};
@@ -80,12 +81,31 @@ class Index extends ViewPU {
                     }
                 });
             }
-            else {
+            else if (name === 'VideoDecoderPage') {
                 this.ifElseBranchUpdateFunction(2, () => {
                     {
                         this.observeComponentCreation2((elmtId, isInitialRender) => {
                             if (isInitialRender) {
-                                let componentCall = new Index(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 31, col: 7 });
+                                let componentCall = new VideoDecoderPage(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 32, col: 7 });
+                                ViewPU.create(componentCall);
+                                let paramsLambda = () => {
+                                    return {};
+                                };
+                                componentCall.paramsGenerator_ = paramsLambda;
+                            }
+                            else {
+                                this.updateStateVarsOfChildByElmtId(elmtId, {});
+                            }
+                        }, { name: "VideoDecoderPage" });
+                    }
+                });
+            }
+            else {
+                this.ifElseBranchUpdateFunction(3, () => {
+                    {
+                        this.observeComponentCreation2((elmtId, isInitialRender) => {
+                            if (isInitialRender) {
+                                let componentCall = new Index(this, {}, undefined, elmtId, () => { }, { page: "entry/src/main/ets/pages/Index.ets", line: 34, col: 7 });
                                 ViewPU.create(componentCall);
                                 let paramsLambda = () => {
                                     return {};
@@ -151,6 +171,17 @@ class Index extends ViewPU {
             Button.margin({ top: 12 });
             Button.onClick(() => {
                 this.pageInfos.pushPath({ name: 'SubMainThreadCom' });
+            });
+        }, Button);
+        Button.pop();
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            Button.createWithLabel('Video Decoder (Buffer Mode)');
+            Button.width('100%');
+            Button.fontWeight(500);
+            Button.fontSize(16);
+            Button.margin({ top: 12 });
+            Button.onClick(() => {
+                this.pageInfos.pushPath({ name: 'VideoDecoderPage' });
             });
         }, Button);
         Button.pop();

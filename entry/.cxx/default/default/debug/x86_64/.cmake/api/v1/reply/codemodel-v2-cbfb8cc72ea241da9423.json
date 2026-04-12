@@ -39,7 +39,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "entry::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-entry-Debug-e2765fef6c75573ebe73.json",
+					"jsonFile" : "target-entry-Debug-4d15bbd8773df0da3065.json",
 					"name" : "entry",
 					"projectIndex" : 0
 				}
@@ -49,7 +49,7 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/20732/Desktop/NativeCase/entry/.cxx/default/default/debug/arm64-v8a",
+		"build" : "C:/Users/20732/Desktop/NativeCase/entry/.cxx/default/default/debug/x86_64",
 		"source" : "C:/Users/20732/Desktop/NativeCase/entry/src/main/cpp"
 	},
 	"version" : 

@@ -59,6 +59,7 @@
 						"resourceId":	16777243
 					}]
 			}],
+		"requestPermissions":	[],
 		"packageName":	"entry",
 		"virtualMachine":	"ark12.0.6.0",
 		"compileMode":	"esmodule",

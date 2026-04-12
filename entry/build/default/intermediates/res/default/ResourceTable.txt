@@ -7,6 +7,7 @@ string calculation_text_desc 0x01000006
 string lib_uv_method_button 0x01000007
 string lib_uv_toast 0x01000008
 string module_desc 0x01000009
+string permission_read_media_reason 0x0100001d
 string read_text_desc 0x0100000a
 string sample_title 0x0100000b
 string sync_callback_button 0x0100000c

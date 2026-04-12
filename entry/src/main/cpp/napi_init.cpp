@@ -19,6 +19,7 @@
 #include "./AsyncPromise/AsyncPromise.h"
 #include "./ThreadSafeCase/ThreadSafeCase.h"
 #include "./LibUvCase/LibUvCase.h"
+#include "./VideoDecoder/VideoDecoder.h"
 extern int g_value;
 
 static napi_value Destroy(napi_env env, napi_callback_info info) {
@@ -37,6 +38,8 @@ static napi_value Init(napi_env env, napi_value exports) {
          nullptr},
         {"libUvCaseFun", nullptr, LibUvCase::LibUvCaseFun, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"destroy", nullptr, Destroy, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"decodeVideoFrames", nullptr, VideoDecoder::DecodeVideoFrames, nullptr, nullptr, nullptr, napi_default,
+         nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

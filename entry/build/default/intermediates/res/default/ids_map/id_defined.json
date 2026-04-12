@@ -115,5 +115,9 @@
 			"type":	"profile",
 			"name":	"main_pages",
 			"id":	"0x0100001C"
+		}, {
+			"type":	"string",
+			"name":	"permission_read_media_reason",
+			"id":	"0x0100001D"
 		}]
 }

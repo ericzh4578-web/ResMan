@@ -1,0 +1,586 @@
+Ôr@Ÿªassertions¤code´customTransformCache¬dependencies¢id¤meta±moduleSideEffects¬originalCode±originalSourcemap«resolvedIds®sourcemapChainµsyntheticNamedExportsµtransformDependencies®transformFiles¨cacheAstÔrAÚ6}if (!("finalizeConstruction" in ViewPU.prototype)) {
+    Reflect.set(ViewPU.prototype, "finalizeConstruction", () => { });
+}
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+import libentry from 'libentry.so';
+import photoAccessHelper from "@ohos.file.photoAccessHelper";
+import hilog from "@ohos.hilog";
+import image from "@ohos.multimedia.image";
+const TAG = 'VideoDecoderPage';
+export class VideoDecoderPage extends ViewPU {
+    constructor(parent, params, __localStorage, elmtId = -1, paramsLambda = undefined, extraInfo) {
+        super(parent, __localStorage, elmtId, extraInfo);
+        if (typeof paramsLambda === "function") {
+            this.paramsGenerator_ = paramsLambda;
+        }
+        this.__status = new ObservedPropertySimplePU('Idle', this, "status");
+        this.__frameCount = new ObservedPropertySimplePU(0, this, "frameCount");
+        this.__frameWidth = new ObservedPropertySimplePU(0, this, "frameWidth");
+        this.__frameHeight = new ObservedPropertySimplePU(0, this, "frameHeight");
+        this.__isDecoding = new ObservedPropertySimplePU(false, this, "isDecoding");
+        this.__latestFramePixelMap = new ObservedPropertyObjectPU(undefined, this, "latestFramePixelMap");
+        this.setInitiallyProvidedValue(params);
+        this.finalizeConstruction();
+    }
+    setInitiallyProvidedValue(params) {
+        if (params.status !== undefined) {
+            this.status = params.status;
+        }
+        if (params.frameCount !== undefined) {
+            this.frameCount = params.frameCount;
+        }
+        if (params.frameWidth !== undefined) {
+            this.frameWidth = params.frameWidth;
+        }
+        if (params.frameHeight !== undefined) {
+            this.frameHeight = params.frameHeight;
+        }
+        if (params.isDecoding !== undefined) {
+            this.isDecoding = params.isDecoding;
+        }
+        if (params.latestFramePixelMap !== undefined) {
+            this.latestFramePixelMap = params.latestFramePixelMap;
+        }
+    }
+    updateStateVars(params) {
+    }
+    purgeVariableDependenciesOnElmtId(rmElmtId) {
+        this.__status.purgeDependencyOnElmtId(rmElmtId);
+        this.__frameCount.purgeDependencyOnElmtId(rmElmtId);
+        this.__frameWidth.purgeDependencyOnElmtId(rmElmtId);
+        this.__frameHeight.purgeDependencyOnElmtId(rmElmtId);
+        this.__isDecoding.purgeDependencyOnElmtId(rmElmtId);
+        this.__latestFramePixelMap.purgeDependencyOnElmtId(rmElmtId);
+    }
+    aboutToBeDeleted() {
+        this.__status.aboutToBeDeleted();
+        this.__frameCount.aboutToBeDeleted();
+        this.__frameWidth.aboutToBeDeleted();
+        this.__frameHeight.aboutToBeDeleted();
+        this.__isDecoding.aboutToBeDeleted();
+        this.__latestFramePixelMap.aboutToBeDeleted();
+        SubscriberManager.Get().delete(this.id__());
+        this.aboutToBeDeletedInternal();
+    }
+    get status() {
+        return this.__status.get();
+    }
+    set status(newValue) {
+        this.__status.set(newValue);
+    }
+    get frameCount() {
+        return this.__frameCount.get();
+    }
+    set frameCount(newValue) {
+        this.__frameCount.set(newValue);
+    }
+    get frameWidth() {
+        return this.__frameWidth.get();
+    }
+    set frameWidth(newValue) {
+        this.__frameWidth.set(newValue);
+    }
+    get frameHeight() {
+        return this.__frameHeight.get();
+    }
+    set frameHeight(newValue) {
+        this.__frameHeight.set(newValue);
+    }
+    get isDecoding() {
+        return this.__isDecoding.get();
+    }
+    set isDecoding(newValue) {
+        this.__isDecoding.set(newValue);
+    }
+    get latestFramePixelMap() {
+        return this.__latestFramePixelMap.get();
+    }
+    set latestFramePixelMap(newValue) {
+        this.__latestFramePixelMap.set(newValue);
+    }
+    // â”€â”€ Pick video from device gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    async pickVideo() {
+        try {
+            const ctx = getContext(this);
+            const picker = new photoAccessHelper.PhotoViewPicker();
+            const result = await picker.select({
+                MIMEType: photoAccessHelper.PhotoViewMIMETypes.VIDEO_TYPE,
+                maxSelectNumber: 1,
+            });
+            if (result.photoUris && result.photoUris.length > 0) {
+                // Convert content URI to a real file path accessible by native code.
+                // On HarmonyOS the URI is already a file:// or /data/... path for local media.
+                const uri = result.photoUris[0];
+                hilog.info(0x0000, TAG, 'Selected video URI: %{public}s', uri);
+                return uri;
+            }
+        }
+        catch (e) {
+            hilog.error(0x0000, TAG, 'pickVideo error: %{public}s', JSON.stringify(e));
+        }
+        return null;
+    }
+    // â”€â”€ Start decoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    startDecode(filePath) {
+        this.frameCount = 0;
+        this.isDecoding = true;
+        this.status = 'Decodingâ€¦';
+        libentry.decodeVideoFrames(filePath, (frame, width, height, isEos) => {
+            if (isEos === 1 || frame === null) {
+                this.status = `Done â€” ${this.frameCount} frames decoded`;
+                this.isDecoding = false;
+                hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
+                return;
+            }
+            this.frameCount += 1;
+            this.frameWidth = width;
+            this.frameHeight = height;
+            // â”€â”€ Optional: render the latest frame â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // Convert the RGBA ArrayBuffer to a PixelMap for display.
+            // This is done asynchronously to avoid blocking the callback.
+            this.renderFrame(frame, width, height);
+            hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d', this.frameCount, width, height, frame.byteLength);
+        });
+    }
+    // â”€â”€ Render one RGBA frame into a PixelMap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    renderFrame(rgba, width, height) {
+        if (this.frameCount % 10 !== 0)
+            return;
+        const opts = {
+            size: { width: width, height: height },
+            pixelFormat: image.PixelMapFormat.RGBA_8888,
+            editable: false,
+        };
+        image.createPixelMap(rgba, opts).then((pm) => {
+            this.latestFramePixelMap = pm;
+        }).catch((e) => {
+            hilog.warn(0x0000, TAG, 'createPixelMap failed: %{public}s', e.message);
+        });
+    }
+    // â”€â”€ UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    initialRender() {
+        this.observeComponentCreation2((elmtId, isInitialRender) => {
+            NavDestination.create(() => {
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Column.create({ space: 16 });
+                    Column.width('100%');
+                    Column.height('100%');
+                    Column.padding({ left: 16, right: 16, top: 16, bottom: 16 });
+                }, Column);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    If.create();
+                    // Preview area
+                    if (this.latestFramePixelMap !== undefined) {
+                        this.ifElseBranchUpdateFunction(0, () => {
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Image.create(this.latestFramePixelMap);
+                                Image.width('100%');
+                                Image.aspectRatio(this.frameWidth > 0 ? this.frameWidth / this.frameHeight : 1.78);
+                                Image.objectFit(ImageFit.Contain);
+                                Image.borderRadius(8);
+                            }, Image);
+                        });
+                    }
+                    else {
+                        this.ifElseBranchUpdateFunction(1, () => {
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Row.create();
+                                Row.width('100%');
+                                Row.height(200);
+                                Row.justifyContent(FlexAlign.Center);
+                                Row.backgroundColor('#1A000000');
+                                Row.borderRadius(8);
+                            }, Row);
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create('No frame yet');
+                                Text.fontSize(14);
+                                Text.fontColor('#888888');
+                            }, Text);
+                            Text.pop();
+                            Row.pop();
+                        });
+                    }
+                }, If);
+                If.pop();
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    // Stats
+                    Column.create({ space: 4 });
+                    // Stats
+                    Column.width('100%');
+                    // Stats
+                    Column.padding(12);
+                    // Stats
+                    Column.backgroundColor('#F5F5F5');
+                    // Stats
+                    Column.borderRadius(8);
+                }, Column);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Text.create(`Status: ${this.status}`);
+                    Text.fontSize(14);
+                    Text.fontColor(this.isDecoding ? '#007DFF' : '#333333');
+                }, Text);
+                Text.pop();
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Text.create(`Frames decoded: ${this.frameCount}`);
+                    Text.fontSize(14);
+                }, Text);
+                Text.pop();
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    If.create();
+                    if (this.frameWidth > 0) {
+                        this.ifElseBranchUpdateFunction(0, () => {
+                            this.observeComponentCreation2((elmtId, isInitialRender) => {
+                                Text.create(`Resolution: ${this.frameWidth} Ã— ${this.frameHeight}`);
+                                Text.fontSize(14);
+                            }, Text);
+                            Text.pop();
+                        });
+                    }
+                    else {
+                        this.ifElseBranchUpdateFunction(1, () => {
+                        });
+                    }
+                }, If);
+                If.pop();
+                // Stats
+                Column.pop();
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    // Action button
+                    Button.createWithLabel(this.isDecoding ? 'Decodingâ€¦' : 'Pick Video & Decode');
+                    // Action button
+                    Button.width('100%');
+                    // Action button
+                    Button.enabled(!this.isDecoding);
+                    // Action button
+                    Button.fontWeight(500);
+                    // Action button
+                    Button.fontSize(16);
+                    // Action button
+                    Button.onClick(async () => {
+                        const path = await this.pickVideo();
+                        if (path) {
+                            this.startDecode(path);
+                        }
+                        else {
+                            this.status = 'No video selected';
+                        }
+                    });
+                }, Button);
+                // Action button
+                Button.pop();
+                Column.pop();
+            }, { moduleName: "entry", pagePath: "entry/src/main/ets/pages/VideoDecoderPage" });
+            NavDestination.title('Video Decoder (Buffer Mode)');
+            NavDestination.backgroundColor({ "id": 16777237, "type": 10001, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+        }, NavDestination);
+        NavDestination.pop();
+    }
+    rerender() {
+        this.updateDirtyElements();
+    }
+    static getEntryName() {
+        return "VideoDecoderPage";
+    }
+}
+registerNamedRoute(() => new VideoDecoderPage(undefined, {}), "", { bundleName: "com.example.nativecase", moduleName: "entry", pagePath: "pages/VideoDecoderPage", pageFullPath: "entry/src/main/ets/pages/VideoDecoderPage", integratedHsp: "false", moduleType: "followWithHap" });
+//# sourceMappingURL=VideoDecoderPage.js.mapÂ”º hvigor_ignore_libentry.soÙv hvigor_ignore_D:_Program Files_Huawei_DevEco Studio_sdk_default_openharmony_ets_api_@ohos.file.photoAccessHelper.d.tsÙe hvigor_ignore_D:_Program Files_Huawei_DevEco Studio_sdk_default_openharmony_ets_api_@ohos.hilog.d.tsÙp hvigor_ignore_D:_Program Files_Huawei_DevEco Studio_sdk_default_openharmony_ets_api_@ohos.multimedia.image.d.tsÙOC:\Users\20732\Desktop\NativeCase\entry\src\main\ets\pages\VideoDecoderPage.etsÔrBœªmoduleName±isLocalDependency¯isNodeEntryFile§pkgPath±belongProjectPath§pkgNameªpkgVersion±dependencyPkgInfo¯hostModulesInfo°belongModulePath§checker¬shouldEmitJs¥entryÃÂÙ'C:\Users\20732\Desktop\NativeCase\entryÙ!C:\Users\20732\Desktop\NativeCase¥entry¥1.0.0Ô  ‘ÔrC’²hostDependencyName®hostModuleName²./VideoDecoderPage¥entryÙ'C:\Users\20732\Desktop\NativeCase\entryÔrDÜ ®¬getNodeCount²getIdentifierCount®getSymbolCount¬getTypeCountµgetInstantiationCountµgetRelationCacheSizes±isUndefinedSymbol±isArgumentsSymbol¯isUnknownSymbol¯getMergedSymbol®getDiagnostics´getGlobalDiagnostics´getRecursionIdentity¶getUnmatchedProperties¹getTypeOfSymbolAtLocation¯getTypeOfSymbolÙ(getSymbolsOfParameterPropertyDeclaration·getDeclaredTypeOfSymbol³getPropertiesOfType±getPropertyOfTypeÙ"getPrivateIdentifierPropertyOfType·getTypeOfPropertyOfType²getIndexInfoOfType³getIndexInfosOfTypeºgetIndexInfosOfIndexSymbol³getSignaturesOfType²getIndexTypeOfType¬getIndexType¬getBaseTypes¸getBaseTypeOfLiteralType®getWidenedType³getTypeFromTypeNode°getParameterTypeÙ$getParameterIdentifierNameAtPosition¸getPromisedTypeOfPromise®getAwaitedType¸getReturnTypeOfSignature®isNullableType¯getNullableType²getNonNullableType²getNonOptionalType°getTypeArguments®typeToTypeNodeÙ$indexInfoToIndexSignatureDeclaration¿signatureToSignatureDeclaration²symbolToEntityName²symbolToExpression¬symbolToNodeÙ!symbolToTypeParameterDeclarations¼symbolToParameterDeclarationºtypeParameterToDeclaration±getSymbolsInScope³getSymbolAtLocation·getIndexInfosAtLocationÙ!getShorthandAssignmentValueSymbolÙ#getExportSpecifierLocalTargetSymbol·getExportSymbolOfSymbol±getTypeAtLocationºgetTypeAtLocationForLinterÙ tryGetTypeAtLocationWithoutCheckºgetTypeOfAssignmentPatternÙ*getPropertySymbolOfDestructuringAssignment±signatureToString¬typeToString®symbolToStringµtypePredicateToString®writeSignature©writeType«writeSymbol²writeTypePredicate¼getAugmentedPropertiesOfType®getRootSymbols²getSymbolOfExpando±getContextualTypeÙ(getContextualTypeForObjectLiteralElementÙ#getContextualTypeForArgumentAtIndexÙ getContextualTypeForJsxAttribute²isContextSensitiveÙ!getTypeOfPropertyOfContextualTypeµgetFullyQualifiedNameÙ#tryGetResolvedSignatureWithoutCheck´getResolvedSignatureÙ/getResolvedSignatureForStringLiteralCompletionsÙ$getResolvedSignatureForSignatureHelpµgetExpandedParameters¹hasEffectiveRestParameterºcontainsArgumentsReference°getConstantValueµisValidPropertyAccessÙ#isValidPropertyAccessForCompletions»getSignatureFromDeclarationºisImplementationOfOverload¹getImmediateAliasedSymbol°getAliasedSymbol¯getEmitResolver²getExportsOfModule¿getExportsAndPropertiesOfModuleÙ forEachExportAndPropertyOfModule¯getSymbolWalker±getAmbientModules¹getJsxIntrinsicTagNamesAt³isOptionalParameter»tryGetMemberInModuleExportsÙ(tryGetMemberInModuleExportsAndProperties´tryFindAmbientModuleÙ(tryFindAmbientModuleWithoutAugmentations¯getApparentType¬getUnionType²isTypeAssignableTo³createAnonymousType¯createSignature¬createSymbol¯createIndexInfoªgetAnyType­getStringType­getNumberType±createPromiseType¯createArrayType¹getElementTypeOfArrayType®getBooleanType¬getFalseType«getTrueType«getVoidType°getUndefinedType«getNullType¯getESSymbolType¬getNeverType¯getOptionalType®getPromiseType²getPromiseLikeType´getAsyncIterableType²isSymbolAccessible«isArrayType«isTupleType¯isArrayLikeTypeÙ#isTypeInvalidDueToUnionDiscriminantºgetExactOptionalProperties¿getAllPossiblePropertiesOfTypesÙ(getSuggestedSymbolForNonexistentPropertyÙ#getSuggestionForNonexistentPropertyÙ,getSuggestedSymbolForNonexistentJSXAttributeÙ&getSuggestedSymbolForNonexistentSymbolÙ!getSuggestionForNonexistentSymbolÙ&getSuggestedSymbolForNonexistentModuleÙ!getSuggestionForNonexistentExportÙ+getSuggestedSymbolForNonexistentClassMember·getBaseConstraintOfType»getDefaultFromTypeParameter«resolveName¯getJsxNamespaceµgetJsxFragmentFactory¸getAccessibleSymbolChain»getTypePredicateOfSignature¹resolveExternalModuleName»resolveExternalModuleSymbol°tryGetThisTypeAt¹getTypeArgumentConstraint¸getSuggestionDiagnostics¸runWithCancellationTokenÙ3getLocalTypeParametersOfClassOrInterfaceOrTypeAlias´isDeclarationVisible´isPropertyAccessible»getTypeOnlyAliasDeclaration¿getMemberOverrideModifierStatusÙ!isTypeParameterPossiblyReferenced²getConstEnumRelate´clearConstEnumRelateµdeleteConstEnumRelateÙ$getTypeArgumentsForResolvedSignatureµgetCheckedSourceFilesÙ"collectHaveTsNoCheckFilesForLinter·clearQualifiedNameCache®isStaticRecord²isStaticSourceFileÔ  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  Ô  ÃÃÚ`/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import libentry from 'libentry.so';
+import { photoAccessHelper } from '@kit.MediaLibraryKit';
+import { common } from '@kit.AbilityKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+import { image } from '@kit.ImageKit';
+
+const TAG = 'VideoDecoderPage';
+
+@Entry
+@Component
+export struct VideoDecoderPage {
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  @State status: string = 'Idle';
+  @State frameCount: number = 0;
+  @State frameWidth: number = 0;
+  @State frameHeight: number = 0;
+  @State isDecoding: boolean = false;
+
+  // Latest RGBA frame rendered via PixelMap (optional display)
+  @State latestFramePixelMap: PixelMap | undefined = undefined;
+
+  // â”€â”€ Pick video from device gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  private async pickVideo(): Promise<string | null> {
+    try {
+      const ctx = getContext(this) as common.UIAbilityContext;
+      const picker = new photoAccessHelper.PhotoViewPicker();
+      const result = await picker.select({
+        MIMEType: photoAccessHelper.PhotoViewMIMETypes.VIDEO_TYPE,
+        maxSelectNumber: 1,
+      });
+      if (result.photoUris && result.photoUris.length > 0) {
+        // Convert content URI to a real file path accessible by native code.
+        // On HarmonyOS the URI is already a file:// or /data/... path for local media.
+        const uri = result.photoUris[0];
+        hilog.info(0x0000, TAG, 'Selected video URI: %{public}s', uri);
+        return uri;
+      }
+    } catch (e) {
+      hilog.error(0x0000, TAG, 'pickVideo error: %{public}s', JSON.stringify(e));
+    }
+    return null;
+  }
+
+  // â”€â”€ Start decoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  private startDecode(filePath: string): void {
+    this.frameCount = 0;
+    this.isDecoding = true;
+    this.status = 'Decodingâ€¦';
+
+    libentry.decodeVideoFrames(
+      filePath,
+      (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => {
+        if (isEos === 1 || frame === null) {
+          this.status = `Done â€” ${this.frameCount} frames decoded`;
+          this.isDecoding = false;
+          hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
+          return;
+        }
+
+        this.frameCount += 1;
+        this.frameWidth = width;
+        this.frameHeight = height;
+
+        // â”€â”€ Optional: render the latest frame â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Convert the RGBA ArrayBuffer to a PixelMap for display.
+        // This is done asynchronously to avoid blocking the callback.
+        this.renderFrame(frame, width, height);
+
+        hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d',
+          this.frameCount, width, height, frame.byteLength);
+      }
+    );
+  }
+
+  // â”€â”€ Render one RGBA frame into a PixelMap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  private renderFrame(rgba: ArrayBuffer, width: number, height: number): void {
+    if (this.frameCount % 10 !== 0) return;
+
+    const opts: image.InitializationOptions = {
+      size: { width: width, height: height },
+      pixelFormat: image.PixelMapFormat.RGBA_8888,
+      editable: false,
+    };
+    image.createPixelMap(rgba, opts).then((pm: PixelMap) => {
+      this.latestFramePixelMap = pm;
+    }).catch((e: Error) => {
+      hilog.warn(0x0000, TAG, 'createPixelMap failed: %{public}s', e.message);
+    });
+  }
+
+  // â”€â”€ UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  build() {
+    NavDestination() {
+      Column({ space: 16 }) {
+
+        // Preview area
+        if (this.latestFramePixelMap !== undefined) {
+          Image(this.latestFramePixelMap)
+            .width('100%')
+            .aspectRatio(this.frameWidth > 0 ? this.frameWidth / this.frameHeight : 1.78)
+            .objectFit(ImageFit.Contain)
+            .borderRadius(8)
+        } else {
+          Row() {
+            Text('No frame yet')
+              .fontSize(14)
+              .fontColor('#888888')
+          }
+          .width('100%')
+          .height(200)
+          .justifyContent(FlexAlign.Center)
+          .backgroundColor('#1A000000')
+          .borderRadius(8)
+        }
+
+        // Stats
+        Column({ space: 4 }) {
+          Text(`Status: ${this.status}`)
+            .fontSize(14)
+            .fontColor(this.isDecoding ? '#007DFF' : '#333333')
+          Text(`Frames decoded: ${this.frameCount}`)
+            .fontSize(14)
+          if (this.frameWidth > 0) {
+            Text(`Resolution: ${this.frameWidth} Ã— ${this.frameHeight}`)
+              .fontSize(14)
+          }
+        }
+        .width('100%')
+        .padding(12)
+        .backgroundColor('#F5F5F5')
+        .borderRadius(8)
+
+        // Action button
+        Button(this.isDecoding ? 'Decodingâ€¦' : 'Pick Video & Decode')
+          .width('100%')
+          .enabled(!this.isDecoding)
+          .fontWeight(500)
+          .fontSize(16)
+          .onClick(async () => {
+            const path = await this.pickVideo();
+            if (path) {
+              this.startDecode(path);
+            } else {
+              this.status = 'No video selected';
+            }
+          })
+      }
+      .width('100%')
+      .height('100%')
+      .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+    }
+    .title('Video Decoder (Buffer Mode)')
+    .backgroundColor($r('app.color.background_color'))
+  }
+}
+ÀÔrE”«libentry.so¼@ohos.file.photoAccessHelper«@ohos.hilog¶@ohos.multimedia.imageÔrF—ªassertions¨external¢id¤meta±moduleSideEffectsªresolvedByµsyntheticNamedExportsAÃº hvigor_ignore_libentry.soAÃªoh-resolveÂFAÃÙv hvigor_ignore_D:_Program Files_Huawei_DevEco Studio_sdk_default_openharmony_ets_api_@ohos.file.photoAccessHelper.d.tsÔrG‘¯hostModulesInfo‘C¼@ohos.file.photoAccessHelper¥entryÃªoh-resolveÂFAÃÙe hvigor_ignore_D:_Program Files_Huawei_DevEco Studio_sdk_default_openharmony_ets_api_@ohos.hilog.d.tsAÃªoh-resolveÂFAÃÙp hvigor_ignore_D:_Program Files_Huawei_DevEco Studio_sdk_default_openharmony_ets_api_@ohos.multimedia.image.d.tsG‘C¶@ohos.multimedia.image¥entryÃªoh-resolveÂ“ÔrH–§version¤fileªsourceRoot§sources¥names¨mappings³VideoDecoderPage.js ‘´VideoDecoderPage.etsÜ"‘”    ‘” –”   ” ” ” ”" "”# #–”   ” 	” ” "”< 8”= 9–”   ” 	” ” ” 3”  4–”   ” 	” ” ”* %”+ &–”   ” ”	 	” ” ” ””   ” ” ” ‘”  ’”5 ”;  ’”9 ”: ’”9 ”: ’”: ”;  ’”9 ”> $’”ÌB "5”ÌK ">‘” ’” 	” ’” 	” ’” 	” ’” 	” ’” 	” ’” 	” ’” 	” ’” 	” ’” 	” ’” 	” ’” "	” "’” "	” "’” $”ÌM $ÌK”” %
+”	 %”
+ %” %’” &” &™” '” '” '” '”" '”# '”' '!”( '=”) '>š” (” (” (” (” (”0 (*”1 (+”Ì@ (:”ÌB (<”ÌC (=™” )” )” )” )”! )”' )!”( )"”. )(”/ ))˜” *” *” *”+ *#”, *$”> *6”? *7”ÌI *ÌA”” +” +”! +”" +“” ,” ,” ,	” -” -
+” -” -”  -”$ -”* -$”+ -%”4 -.”5 -/”; -5”> -8”? -9”ÌA -;’” .”ÌU .ÌM’” /”Ì_ /ÌW›” 0” 0” 0” 0”" 0”# 0”, 0$”- 0%”. 0&”/ 0'”0 0(” 1” 1” 1” 1” 1”! 1”# 1”& 1”( 1 ”ÌH 1Ì@”ÌJ 1ÌB”ÌM 1ÌE”ÌN 1ÌF”ÌO 1ÌG”” 2” 2” 2” 2‘” 3‘”	 4”” 4” 4” 4” 4Ü ” 5” 5” 5” 5” 5” 5”  5”# 5”% 5”ÌB 5<”ÌD 5>”ÌH 5ÌB”ÌI 5ÌC”ÌR 5ÌL”ÌS 5ÌM”ÌT 5ÌN”ÌU 5ÌO”ÌV 5ÌP”ÌW 5ÌQ‘”	 6”” 7” 7” 7” 7’” 8” 8’” :”ÌN :ÌL”” ;
+” ;” ;” ;&—” <” <” <	” <” <” <” <—” =” =” =	” =” =” =” =—” >” >” >	” >” >”! >”" >Ü ” Ì@” Ì@” Ì@”" Ì@”# ÌA”+ ÌA”- ÌB”. ÌB”3 ÌB ”5 ÌB"”: ÌB/”< ÌB1”ÌB ÌB?”ÌD ÌBÌA”ÌI ÌBÌN”ÌK ÌBÌP”ÌM ÌBÌRš” ÌC” ÌC” ÌC” ÌC” ÌC” ÌC”$ ÌC ”) ÌC%”- ÌC)”/ ÌC+›” ÌD
+” ÌD” ÌD” ÌD” ÌD”( ÌD"”, ÌD&”- ÌD'”7 ÌD1”ÌH ÌDÌB”ÌI ÌDÌC—” ÌE
+” ÌE” ÌE” ÌE”" ÌE”' ÌE!”( ÌE"Ü ” ÌF
+” ÌF” ÌF” ÌF” ÌF”! ÌF”# ÌF”& ÌF ”( ÌF"”ÌU ÌFÌO”ÌW ÌFÌQ”Ì[ ÌFÌU”Ì\ ÌFÌV”Ìf ÌFÌ`”Ìg ÌFÌa”Ìh ÌFÌb’” ÌG
+” ÌG‘” ÌH	—” ÌJ” ÌJ” ÌJ” ÌJ” ÌJ”  ÌJ”! ÌJ—” ÌK” ÌK” ÌK” ÌK” ÌK”# ÌK”$ ÌK —” ÌL” ÌL” ÌL” ÌL” ÌL”% ÌL!”& ÌL"’” ÌN”ÌN ÌNÌJ’” ÌO”ÌF ÌOÌB’” ÌP”ÌJ ÌPÌFœ” ÌQ” ÌQ” ÌQ” ÌQ” ÌQ”" ÌQ”$ ÌQ ”) ÌQ%”+ ÌQ'”1 ÌQ-”2 ÌQ.”3 ÌQ/Ü ” ÌS” ÌS” ÌS” ÌS” ÌS” ÌS”  ÌS”# ÌS”% ÌS!”Ìa ÌSÌ]”Ìc ÌT
+”Ìg ÌT”Ìh ÌT”Ìr ÌT”Ìt ÌT”Ìy ÌT ”Ì{ ÌT"”Ì ÌT(”Ìƒ ÌT*”Ìˆ ÌT/”Ì‰ ÌT0”Ì“ ÌT:”Ì” ÌT;”Ì• ÌT<”” ÌU”	 ÌU”
+ ÌV” ÌV’” ÌW” ÌW’” ÌY”ÌN ÌYÌL˜” ÌZ
+” ÌZ” ÌZ” ÌZ'” ÌZ)” ÌZ6” ÌZ8”# ÌZÌF™” Ì[” Ì[” Ì[” Ì[” Ì[” Ì[”  Ì[”% Ì[!”& Ì["’” Ì[$” Ì[+”” Ì]” Ì]
+” Ì]” Ì].œ” Ì^” Ì^
+” Ì^” Ì^” Ì^” Ì^”  Ì^”" Ì^”( Ì^"”* Ì^$”0 Ì^*”2 Ì^,˜” Ì_” Ì_” Ì_” Ì_” Ì_”- Ì_'”. Ì_(”7 Ì_1”” Ì`” Ì`” Ì`” Ì`’”	 Ìa”
+ ÌaÜ ” Ìb” Ìb	” Ìb
+” Ìb” Ìb”! Ìb”# Ìb”' Ìb#”( Ìb$”) Ìb%”- Ìb)”. Ìb*”/ Ìb+”1 Ìb7”3 Ìb9”5 Ìb;—” Ìc” Ìc
+” Ìc”$ Ìc”' Ìc!”) Ìc#”* Ìc$š” Ìd”	 Ìd”
+ Ìd” Ìd” Ìd” Ìd” Ìd” Ìd” Ìd” ÌdÜ ” Ìe” Ìe” Ìe” Ìe” Ìe” Ìe” Ìe”" Ìe”$ Ìe”ÌG ÌeÌA”ÌI ÌeÌC”ÌJ ÌeÌD”ÌK ÌeÌE”ÌR ÌeÌL”ÌS ÌeÌM”ÌT ÌeÌN”” Ìf”	 Ìf”
+ Ìf” Ìf’” Ìg” Ìg’” Ìi”ÌN ÌiÌL‘” Ìj˜” Ìl” Ìl”" Ìl”$ Ìl”) Ìl”+ Ìl”- Ìl”/ Ìl–” Ìl” Ìl” Ì¢”  Ì¢”! Ì¢”' Ì¢–” Ìl” Ìl” Ì£”! Ì£”" Ì£”( Ì£Ü ” Ìl” Ìl” Ì¤”" Ì¤”# Ì¤”% Ì¤”) Ì¤”+ Ì¤”- Ì¤”/ Ì¤”4 Ì¤ ”6 Ì¤"”8 Ì¤$”: Ì¤&”= Ì¤)”? Ì¤+”ÌA Ì¤-”ÌC Ì¤/”ÌI Ì¤5”ÌK Ì¤7”ÌM Ì¤9”ÌO Ì¤;’” Ìn”# Ìn˜” Ìo” Ìo” Ìo” Ìo”0 Ìo$”5 Ìo)”> Ìo2”Ì@ Ìo4–”  Ìp
+”% Ìp”- Ìp”1 Ìp”2 Ìp”ÌE Ìp(–”  Ìp
+”% Ìp”& Ìq”+ Ìq”, Ìq”2 ÌqÜ ”  Ìp
+”% Ìp”& Ìr”1 Ìr”2 Ìr”6 Ìr”7 Ìr”ÌA Ìr(”ÌD Ìr+”ÌE Ìr,”ÌF Ìr-”ÌG Ìr.”ÌH Ìr/”ÌL Ìr3”ÌM Ìr4”ÌW Ìr>”ÌZ ÌrÌA”Ì^ ÌrÌE”Ì_ ÌrÌF”Ìj ÌrÌQ”Ìk ÌrÌR”Ìl ÌrÌS”Ìm ÌrÌT”Ìq ÌrÌX˜”  Ìp
+”% Ìp”& Ìs”/ Ìs”0 Ìs”8 Ìs”9 Ìs ”Ì@ Ìs'–”  Ìp
+”% Ìp”& Ìt”2 Ìt”3 Ìt”4 Ìt‘” Ìu	‘” Ìu’”  Ìv
+”# Ìv–”  Ìv
+”# Ìv”$ Ì{”) Ì{”* Ì{”0 Ì{–”  Ìv
+”# Ìv”$ Ì|”* Ì|”+ Ì|”. Ì|˜”  Ìv
+”# Ìv”$ Ì}”2 Ì}”3 Ì}”< Ì}#”= Ì}$”ÌC Ì}*–”  Ìv
+”# Ìv”$ Ì~”3 Ì~”4 Ì~”? Ì~&–”  Ìv
+”# Ìv”$ Ì”0 Ì”1 Ì”2 Ì””  Ìw”$ Ìw”, Ìw”: Ìw–”  Ìw”$ Ìw”% Ìx”- Ìx”. Ìx”0 Ìx–”  Ìw”$ Ìw”% Ìy”. Ìy”/ Ìy”8 Ìy"’” Ìw”  Ìw’” Ìv
+” Ìv‘” Ì€	’” Ì‚” Ì‚˜” Ìƒ” Ìƒ”" Ìƒ”$ Ìƒ”) Ìƒ”+ Ìƒ”, Ìƒ”. Ìƒ’” Ì‚” Ì‚–” Ìƒ” Ìƒ” Ì	”  Ì”! Ì”' Ì’” Ì‚” Ì‚–” Ìƒ” Ìƒ” Ì	”" Ì”# Ì”% Ì’” Ì‚” Ì‚–” Ìƒ” Ìƒ” Ì	”* Ì”+ Ì”4 Ì"’” Ì‚” Ì‚–” Ìƒ” Ìƒ” Ì‘	”' Ì‘”( Ì‘”) Ì‘˜” Ì„
+” Ì„”  Ì„”+ Ì„”/ Ì„”0 Ì„”6 Ì„%”8 Ì„'–” Ì„
+” Ì„” Ì…”! Ì…”" Ì…”$ Ì…Ü ” Ì„
+” Ì„” Ì†”" Ì†”# Ì†”' Ì†”( Ì†”2 Ì†&”3 Ì†'”4 Ì†(”5 Ì†)”> Ì†2”? Ì†3”Ì@ Ì†4”ÌA Ì†5”ÌJ Ì†>’” Ì„
+” Ì„˜” Ì‡
+” Ì‡”  Ì‡”3 Ì‡"”7 Ì‡&”8 Ì‡'”ÌB Ì‡1”ÌD Ì‡3–” Ì‡
+” Ì‡” Ìˆ”! Ìˆ”" Ìˆ”$ Ìˆ’” Ì‡
+” Ì‡˜” Ì‰
+” Ì‰” Ì‰” Ì‰”' Ì‰”* Ì‰ ”+ Ì‰!”- Ì‰#œ”  ÌŠ”$ ÌŠ”, ÌŠ”; ÌŠ ”? ÌŠ$”Ì@ ÌŠ%”ÌJ ÌŠ/”ÌP ÌŠ5”ÌT ÌŠ9”ÌU ÌŠ:”Ì` ÌŠÌE”Ìb ÌŠÌG–”  ÌŠ”$ ÌŠ”% Ì‹”- Ì‹”. Ì‹”0 Ì‹’” ÌŠ”  ÌŠ‘” ÌŒ‘” ÌŒ’” Ì‚” Ì‚’” Ìƒ” Ìƒ’” Ì“”$ Ì“” Ì”” Ì””+ Ì””/ Ì””0 Ì””: Ì””; Ì””< Ì” ”= Ì”!”ÌH Ì”,”ÌI Ì”-”ÌJ Ì”.”ÌK Ì”/”Ì` Ì”ÌD’” Ì“”$ Ì“–” Ì”” Ì”” Ì•”  Ì•”! Ì•”' Ì•’” Ì“”$ Ì“™” Ì”” Ì”” Ì–”" Ì–”# Ì–”$ Ì–”( Ì–”) Ì–”3 Ì–#’” Ì“”$ Ì“–” Ì”” Ì”” Ì—”% Ì—”& Ì—”) Ì—’” Ì“”$ Ì“–” Ì”” Ì”” Ì˜”# Ì˜”$ Ì˜”& Ì˜’” Ì“”$ Ì“˜” Ì”” Ì”” Ì™”" Ì™”# Ì™”( Ì™”, Ì™”. Ì™š” Ìš” Ìš”" Ìš”% Ìš”+ Ìš”/ Ìš#”0 Ìš$”9 Ìš-”; Ìš/”< Ìš0”” Ì›” Ì›”  Ì›”" Ì›˜” Ìœ”  Ìœ”! Ìœ”, Ìœ”- Ìœ”1 Ìœ#”2 Ìœ$”3 Ìœ%‘” Ì‘” Ì—” Ì”  Ì”! Ì”' Ì”* Ì”= Ì/”> Ì0‘” ÌŸ’” Ì 
+” Ì ’” Ì“”  Ì“’” Ì”” Ì”’” Ìl” Ìl”” Ì¦”  Ì¦
+”! Ì¦”> Ì¦(’” Ì§”* Ì§‘” Ì¨ÔrI–§version¤file§sources®sourcesContent¥names¨mappingsÀ‘À‘ÀÜ+‘”    ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”  	 ‘”  
+ ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”   ‘”    ‘”  ! ‘”  " ‘”  # ‘”  $ ‘”  % ‘”  & ‘”  ' ‘”  ( ‘”  ) ‘”  * ‘”  + ‘”  , ‘”  - ‘”  . ‘”  / ‘”  0 ‘”  1 ‘”  2 ‘”  3 ‘”  4 ‘”  5 ‘”  6 ‘”  7 ‘”  8 ‘”  9 ‘”  : ‘”  ; ‘”  < ‘”  = ‘”  > ‘”  ? ‘”  Ì@ ‘”  ÌA ‘”  ÌB ‘”  ÌC ‘”  ÌD ‘”  ÌE ‘”  ÌF ‘”  ÌG ‘”  ÌH ‘”  ÌI ‘”  ÌJ ‘”  ÌK ‘”  ÌL ‘”  ÌM ‘”  ÌN ‘”  ÌO ‘”  ÌP ‘”  ÌQ ‘”  ÌR ‘”  ÌS ‘”  ÌT ‘”  ÌU ‘”  ÌV ‘”  ÌW ‘”  ÌX ‘”  ÌY ‘”  ÌZ ‘”  Ì[ ‘”  Ì\ ‘”  Ì] ‘”  Ì^ ‘”  Ì_ ‘”  Ì` ‘”  Ìa ‘”  Ìb ‘”  Ìc ‘”  Ìd ‘”  Ìe ‘”  Ìf ‘”  Ìg ‘”  Ìh ‘”  Ìi ‘”  Ìj ‘”  Ìk ‘”  Ìl ‘”  Ìm ‘”  Ìn ‘”  Ìo ‘”  Ìp ‘”  Ìq ‘”  Ìr ‘”  Ìs ‘”  Ìt ‘”  Ìu ‘”  Ìv ‘”  Ìw ‘”  Ìx ‘”  Ìy ‘”  Ìz ‘”  Ì{ ‘”  Ì| ‘”  Ì} ‘”  Ì~ ‘”  Ì ‘”  Ì€ ‘”  Ì ‘”  Ì‚ ‘”  Ìƒ ‘”  Ì„ ‘”  Ì… ‘”  Ì† ‘”  Ì‡ ‘”  Ìˆ ‘”  Ì‰ ‘”  ÌŠ ‘”  Ì‹ ‘”  ÌŒ ‘”  Ì ‘”  Ì ‘”  Ì ‘”  Ì ‘”  Ì‘ ‘”  Ì’ ‘”  Ì“ ‘”  Ì” ‘”  Ì• ‘”  Ì– ‘”  Ì— ‘”  Ì˜ ‘”  Ì™ ‘”  Ìš ‘”  Ì› ‘”  Ìœ ‘”  Ì ‘”  Ì ‘”  ÌŸ ‘”  Ì  ‘”  Ì¡ ‘”  Ì¢ ‘”  Ì£ ‘”  Ì¤ ‘”  Ì¥ ‘”  Ì¦ ‘”  Ì§ ‘”  Ì¨ ‘”  Ì© ‘”  Ìª ‘”  Ì« ‘”  Ì¬ ‘”  Ì­ ‘”  Ì® ‘”  Ì¯ ‘”  Ì° ‘”  Ì± ‘”  Ì² ‘”  Ì³ ‘”  Ì´ ‘”  Ìµ ‘”  Ì¶ ‘”  Ì· ‘”  Ì¸ ‘”  Ì¹ ‘”  Ìº ‘”  Ì» ‘”  Ì¼ ‘”  Ì½ ‘”  Ì¾ ‘”  Ì¿ ‘”  ÌÀ ‘”  ÌÁ ‘”  ÌÂ ‘”  ÌÃ ‘”  ÌÄ ‘”  ÌÅ ‘”  ÌÆ ‘”  ÌÇ ‘”  ÌÈ ‘”  ÌÉ ‘”  ÌÊ ‘”  ÌË ‘”  ÌÌ ‘”  ÌÍ ‘”  ÌÎ ‘”  ÌÏ ‘”  ÌĞ ‘”  ÌÑ ‘”  ÌÒ ‘”  ÌÓ ‘”  ÌÔ ‘”  ÌÕ ‘”  ÌÖ ‘”  Ì× ‘”  ÌØ ‘”  ÌÙ ‘”  ÌÚ ‘”  ÌÛ ‘”  ÌÜ ‘”  Ìİ ‘”  ÌŞ ‘”  Ìß ‘”  Ìà ‘”  Ìá ‘”  Ìâ ‘”  Ìã ‘”  Ìä ‘”  Ìå ‘”  Ìæ ‘”  Ìç ‘”  Ìè ‘”  Ìé ‘”  Ìê ‘”  Ìë ‘”  Ìì ‘”  Ìí ‘”  Ìî ‘”  Ìï ‘”  Ìğ ‘”  Ìñ ‘”  Ìò ‘”  Ìó ‘”  Ìô ‘”  Ìõ ‘”  Ìö ‘”  Ì÷ ‘”  Ìø ‘”  Ìù ‘”  Ìú ‘”  Ìû ‘”  Ìü ‘”  Ìı ‘”  Ìş ‘”  Ìÿ ‘”  Í  ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í	 ‘”  Í
+ ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í ‘”  Í  ‘”  Í! ‘”  Í" ‘”  Í# ‘”  Í$ ‘”  Í% ‘”  Í& ‘”  Í' ‘”  Í( ‘”  Í) ‘”  Í* ÔrJ’§missing¦pluginÃ¦genAbcÂÔ  ÔrK”²dynamicImportCache¹exportAllDeclarationCache»exportNamedDeclarationCache«importCache‘ÔrL–¤type¥start£end«declarationªspecifiers¦source¶ExportNamedDeclarationÍÂÍ3yÔrM–¤type¥start£end¢idªsuperClass¤body°ClassDeclarationÍÉÍ3yÔrN”¤type¥start£end¤nameªIdentifierÍÏÍß°VideoDecoderPageNªIdentifierÍèÍî¦ViewPUÔrO”¤type¥start£end¤body©ClassBodyÍïÍ3yÜ ÔrP˜¤type¥start£end¦static¨computed£key¤kind¥value°MethodDefinitionÍöÍhÂÂNªIdentifierÍöÍ«constructor«constructorÔrQ™¤type¥start£end¢idªexpression©generator¥async¦params¤body²FunctionExpressionÍÍhÀÂÂÂ–NªIdentifierÍÍ¦parentNªIdentifierÍ
+Í¦paramsNªIdentifierÍÍ ®__localStorageÔrR•¤type¥start£end¤left¥right±AssignmentPatternÍ"Í-NªIdentifierÍ"Í(¦elmtIdÔrS–¤type¥start£end¨operator¦prefix¨argument¯UnaryExpressionÍ+Í-¡-ÃÔrT•¤type¥start£end¥value£raw§LiteralÍ,Í-¡1R±AssignmentPatternÍ/ÍGNªIdentifierÍ/Í;¬paramsLambdaNªIdentifierÍ>ÍG©undefinedNªIdentifierÍIÍR©extraInfoO®BlockStatementÍTÍhšÔrU”¤type¥start£endªexpression³ExpressionStatementÍ_ÍÔrV–¤type¥start£end¦callee©arguments¨optional®CallExpressionÍ_ÍÔrW“¤type¥start£end¥SuperÍ_Íd”NªIdentifierÍeÍk¦parentNªIdentifierÍmÍ{®__localStorageNªIdentifierÍ}Íƒ¦elmtIdNªIdentifierÍ…Í©extraInfoÂÔrX–¤type¥start£end¤testªconsequent©alternate«IfStatementÍšÍÔrY–¤type¥start£end¤left¨operator¥right°BinaryExpressionÍÍÀS¯UnaryExpressionÍÍ±¦typeofÃNªIdentifierÍ¥Í±¬paramsLambda£===T§LiteralÍ¶ÍÀ¨functionª"function"O®BlockStatementÍÂÍ‘U³ExpressionStatementÍÑÍöÔrZ–¤type¥start£end¨operator¤left¥right´AssignmentExpressionÍÑÍõ¡=Ôr[—¤type¥start£end¦object¨property¨computed¨optional°MemberExpressionÍÑÍæW®ThisExpressionÍÑÍÕNªIdentifierÍÖÍæ°paramsGenerator_ÂÂNªIdentifierÍéÍõ¬paramsLambdaÀU³ExpressionStatementÍÍPZ´AssignmentExpressionÍÍO¡=[°MemberExpressionÍÍW®ThisExpressionÍÍNªIdentifierÍÍ¨__statusÂÂÔr\•¤type¥start£end¦callee©arguments­NewExpressionÍÍONªIdentifierÍÍ7¸ObservedPropertySimplePU“T§LiteralÍ8Í>¤Idle¦'Idle'W®ThisExpressionÍ@ÍDT§LiteralÍFÍN¦status¨"status"U³ExpressionStatementÍZÍ¢Z´AssignmentExpressionÍZÍ¡¡=[°MemberExpressionÍZÍkW®ThisExpressionÍZÍ^NªIdentifierÍ_Ík¬__frameCountÂÂ\­NewExpressionÍnÍ¡NªIdentifierÍrÍŠ¸ObservedPropertySimplePU“T§LiteralÍ‹ÍŒ ¡0W®ThisExpressionÍÍ’T§LiteralÍ”Í ªframeCount¬"frameCount"U³ExpressionStatementÍ¬ÍôZ´AssignmentExpressionÍ¬Íó¡=[°MemberExpressionÍ¬Í½W®ThisExpressionÍ¬Í°NªIdentifierÍ±Í½¬__frameWidthÂÂ\­NewExpressionÍÀÍóNªIdentifierÍÄÍÜ¸ObservedPropertySimplePU“T§LiteralÍİÍŞ ¡0W®ThisExpressionÍàÍäT§LiteralÍæÍòªframeWidth¬"frameWidth"U³ExpressionStatementÍşÍHZ´AssignmentExpressionÍşÍG¡=[°MemberExpressionÍşÍW®ThisExpressionÍşÍNªIdentifierÍÍ­__frameHeightÂÂ\­NewExpressionÍÍGNªIdentifierÍÍ/¸ObservedPropertySimplePU“T§LiteralÍ0Í1 ¡0W®ThisExpressionÍ3Í7T§LiteralÍ9ÍF«frameHeight­"frameHeight"U³ExpressionStatementÍRÍZ´AssignmentExpressionÍRÍ¡=[°MemberExpressionÍRÍcW®ThisExpressionÍRÍVNªIdentifierÍWÍc¬__isDecodingÂÂ\­NewExpressionÍfÍNªIdentifierÍjÍ‚¸ObservedPropertySimplePU“T§LiteralÍƒÍˆÂ¥falseW®ThisExpressionÍŠÍT§LiteralÍÍœªisDecoding¬"isDecoding"U³ExpressionStatementÍ¨Í
+Z´AssignmentExpressionÍ¨Í	¡=[°MemberExpressionÍ¨ÍÂW®ThisExpressionÍ¨Í¬NªIdentifierÍ­ÍÂµ__latestFramePixelMapÂÂ\­NewExpressionÍÅÍ	NªIdentifierÍÉÍá¸ObservedPropertyObjectPU“NªIdentifierÍâÍë©undefinedW®ThisExpressionÍíÍñT§LiteralÍóÍ³latestFramePixelMapµ"latestFramePixelMap"U³ExpressionStatementÍÍ;V®CallExpressionÍÍ:[°MemberExpressionÍÍ2W®ThisExpressionÍÍNªIdentifierÍÍ2¹setInitiallyProvidedValueÂÂ‘NªIdentifierÍ3Í9¦paramsÂU³ExpressionStatementÍEÍaV®CallExpressionÍEÍ`[°MemberExpressionÍEÍ^W®ThisExpressionÍEÍINªIdentifierÍJÍ^´finalizeConstructionÂÂÂP°MethodDefinitionÍnÍ
+8ÂÂNªIdentifierÍnÍ‡¹setInitiallyProvidedValue¦methodQ²FunctionExpressionÍ‡Í
+8ÀÂÂÂ‘NªIdentifierÍˆÍ¦paramsO®BlockStatementÍÍ
+8–X«IfStatementÍ›ÍòY°BinaryExpressionÍŸÍº[°MemberExpressionÍŸÍ¬NªIdentifierÍŸÍ¥¦paramsNªIdentifierÍ¦Í¬¦statusÂÂ£!==NªIdentifierÍ±Íº©undefinedO®BlockStatementÍ¼Íò‘U³ExpressionStatementÍËÍçZ´AssignmentExpressionÍËÍæ¡=[°MemberExpressionÍËÍÖW®ThisExpressionÍËÍÏNªIdentifierÍĞÍÖ¦statusÂÂ[°MemberExpressionÍÙÍæNªIdentifierÍÙÍß¦paramsNªIdentifierÍàÍæ¦statusÂÂÀX«IfStatementÍüÍ_Y°BinaryExpressionÍ Í[°MemberExpressionÍ ÍNªIdentifierÍ Í¦paramsNªIdentifierÍÍªframeCountÂÂ£!==NªIdentifierÍÍ©undefinedO®BlockStatementÍ!Í_‘U³ExpressionStatementÍ0ÍTZ´AssignmentExpressionÍ0ÍS¡=[°MemberExpressionÍ0Í?W®ThisExpressionÍ0Í4NªIdentifierÍ5Í?ªframeCountÂÂ[°MemberExpressionÍBÍSNªIdentifierÍBÍH¦paramsNªIdentifierÍIÍSªframeCountÂÂÀX«IfStatementÍiÍÌY°BinaryExpressionÍmÍŒ[°MemberExpressionÍmÍ~NªIdentifierÍmÍs¦paramsNªIdentifierÍtÍ~ªframeWidthÂÂ£!==NªIdentifierÍƒÍŒ©undefinedO®BlockStatementÍÍÌ‘U³ExpressionStatementÍÍÁZ´AssignmentExpressionÍÍÀ¡=[°MemberExpressionÍÍ¬W®ThisExpressionÍÍ¡NªIdentifierÍ¢Í¬ªframeWidthÂÂ[°MemberExpressionÍ¯ÍÀNªIdentifierÍ¯Íµ¦paramsNªIdentifierÍ¶ÍÀªframeWidthÂÂÀX«IfStatementÍÖÍ	<Y°BinaryExpressionÍÚÍú[°MemberExpressionÍÚÍìNªIdentifierÍÚÍà¦paramsNªIdentifierÍáÍì«frameHeightÂÂ£!==NªIdentifierÍñÍú©undefinedO®BlockStatementÍüÍ	<‘U³ExpressionStatementÍ	Í	1Z´AssignmentExpressionÍ	Í	0¡=[°MemberExpressionÍ	Í	W®ThisExpressionÍ	Í	NªIdentifierÍ	Í	«frameHeightÂÂ[°MemberExpressionÍ	Í	0NªIdentifierÍ	Í	$¦paramsNªIdentifierÍ	%Í	0«frameHeightÂÂÀX«IfStatementÍ	FÍ	©Y°BinaryExpressionÍ	JÍ	i[°MemberExpressionÍ	JÍ	[NªIdentifierÍ	JÍ	P¦paramsNªIdentifierÍ	QÍ	[ªisDecodingÂÂ£!==NªIdentifierÍ	`Í	i©undefinedO®BlockStatementÍ	kÍ	©‘U³ExpressionStatementÍ	zÍ	Z´AssignmentExpressionÍ	zÍ	¡=[°MemberExpressionÍ	zÍ	‰W®ThisExpressionÍ	zÍ	~NªIdentifierÍ	Í	‰ªisDecodingÂÂ[°MemberExpressionÍ	ŒÍ	NªIdentifierÍ	ŒÍ	’¦paramsNªIdentifierÍ	“Í	ªisDecodingÂÂÀX«IfStatementÍ	³Í
+1Y°BinaryExpressionÍ	·Í	ß[°MemberExpressionÍ	·Í	ÑNªIdentifierÍ	·Í	½¦paramsNªIdentifierÍ	¾Í	Ñ³latestFramePixelMapÂÂ£!==NªIdentifierÍ	ÖÍ	ß©undefinedO®BlockStatementÍ	áÍ
+1‘U³ExpressionStatementÍ	ğÍ
+&Z´AssignmentExpressionÍ	ğÍ
+%¡=[°MemberExpressionÍ	ğÍ
+W®ThisExpressionÍ	ğÍ	ôNªIdentifierÍ	õÍ
+³latestFramePixelMapÂÂ[°MemberExpressionÍ
+Í
+%NªIdentifierÍ
+Í
+¦paramsNªIdentifierÍ
+Í
+%³latestFramePixelMapÂÂÀP°MethodDefinitionÍ
+>Í
+^ÂÂNªIdentifierÍ
+>Í
+M¯updateStateVars¦methodQ²FunctionExpressionÍ
+MÍ
+^ÀÂÂÂ‘NªIdentifierÍ
+NÍ
+T¦paramsO®BlockStatementÍ
+VÍ
+^P°MethodDefinitionÍ
+dÍÂÂNªIdentifierÍ
+dÍ
+…Ù!purgeVariableDependenciesOnElmtId¦methodQ²FunctionExpressionÍ
+…ÍÀÂÂÂ‘NªIdentifierÍ
+†Í
+¨rmElmtIdO®BlockStatementÍ
+Í–U³ExpressionStatementÍ
+›Í
+ËV®CallExpressionÍ
+›Í
+Ê[°MemberExpressionÍ
+›Í
+À[°MemberExpressionÍ
+›Í
+¨W®ThisExpressionÍ
+›Í
+ŸNªIdentifierÍ
+ Í
+¨¨__statusÂÂNªIdentifierÍ
+©Í
+À·purgeDependencyOnElmtIdÂÂ‘NªIdentifierÍ
+ÁÍ
+É¨rmElmtIdÂU³ExpressionStatementÍ
+ÕÍ	V®CallExpressionÍ
+ÕÍ[°MemberExpressionÍ
+ÕÍ
+ş[°MemberExpressionÍ
+ÕÍ
+æW®ThisExpressionÍ
+ÕÍ
+ÙNªIdentifierÍ
+ÚÍ
+æ¬__frameCountÂÂNªIdentifierÍ
+çÍ
+ş·purgeDependencyOnElmtIdÂÂ‘NªIdentifierÍ
+ÿÍ¨rmElmtIdÂU³ExpressionStatementÍÍGV®CallExpressionÍÍF[°MemberExpressionÍÍ<[°MemberExpressionÍÍ$W®ThisExpressionÍÍNªIdentifierÍÍ$¬__frameWidthÂÂNªIdentifierÍ%Í<·purgeDependencyOnElmtIdÂÂ‘NªIdentifierÍ=ÍE¨rmElmtIdÂU³ExpressionStatementÍQÍ†V®CallExpressionÍQÍ…[°MemberExpressionÍQÍ{[°MemberExpressionÍQÍcW®ThisExpressionÍQÍUNªIdentifierÍVÍc­__frameHeightÂÂNªIdentifierÍdÍ{·purgeDependencyOnElmtIdÂÂ‘NªIdentifierÍ|Í„¨rmElmtIdÂU³ExpressionStatementÍÍÄV®CallExpressionÍÍÃ[°MemberExpressionÍÍ¹[°MemberExpressionÍÍ¡W®ThisExpressionÍÍ”NªIdentifierÍ•Í¡¬__isDecodingÂÂNªIdentifierÍ¢Í¹·purgeDependencyOnElmtIdÂÂ‘NªIdentifierÍºÍÂ¨rmElmtIdÂU³ExpressionStatementÍÎÍV®CallExpressionÍÎÍ
+[°MemberExpressionÍÎÍ [°MemberExpressionÍÎÍèW®ThisExpressionÍÎÍÒNªIdentifierÍÓÍèµ__latestFramePixelMapÂÂNªIdentifierÍéÍ ·purgeDependencyOnElmtIdÂÂ‘NªIdentifierÍÍ	¨rmElmtIdÂP°MethodDefinitionÍÍ³ÂÂNªIdentifierÍÍ(°aboutToBeDeleted¦methodQ²FunctionExpressionÍ(Í³ÀÂÂÂO®BlockStatementÍ+Í³˜U³ExpressionStatementÍ6ÍWV®CallExpressionÍ6ÍV[°MemberExpressionÍ6ÍT[°MemberExpressionÍ6ÍCW®ThisExpressionÍ6Í:NªIdentifierÍ;ÍC¨__statusÂÂNªIdentifierÍDÍT°aboutToBeDeletedÂÂÂU³ExpressionStatementÍaÍ†V®CallExpressionÍaÍ…[°MemberExpressionÍaÍƒ[°MemberExpressionÍaÍrW®ThisExpressionÍaÍeNªIdentifierÍfÍr¬__frameCountÂÂNªIdentifierÍsÍƒ°aboutToBeDeletedÂÂÂU³ExpressionStatementÍÍµV®CallExpressionÍÍ´[°MemberExpressionÍÍ²[°MemberExpressionÍÍ¡W®ThisExpressionÍÍ”NªIdentifierÍ•Í¡¬__frameWidthÂÂNªIdentifierÍ¢Í²°aboutToBeDeletedÂÂÂU³ExpressionStatementÍ¿ÍåV®CallExpressionÍ¿Íä[°MemberExpressionÍ¿Íâ[°MemberExpressionÍ¿ÍÑW®ThisExpressionÍ¿ÍÃNªIdentifierÍÄÍÑ­__frameHeightÂÂNªIdentifierÍÒÍâ°aboutToBeDeletedÂÂÂU³ExpressionStatementÍïÍV®CallExpressionÍïÍ[°MemberExpressionÍïÍ[°MemberExpressionÍïÍ W®ThisExpressionÍïÍóNªIdentifierÍôÍ ¬__isDecodingÂÂNªIdentifierÍÍ°aboutToBeDeletedÂÂÂU³ExpressionStatementÍÍLV®CallExpressionÍÍK[°MemberExpressionÍÍI[°MemberExpressionÍÍ8W®ThisExpressionÍÍ"NªIdentifierÍ#Í8µ__latestFramePixelMapÂÂNªIdentifierÍ9ÍI°aboutToBeDeletedÂÂÂU³ExpressionStatementÍVÍ‚V®CallExpressionÍVÍ[°MemberExpressionÍVÍtV®CallExpressionÍVÍm[°MemberExpressionÍVÍkNªIdentifierÍVÍg±SubscriberManagerNªIdentifierÍhÍk£GetÂÂÂNªIdentifierÍnÍt¦deleteÂÂ‘V®CallExpressionÍuÍ€[°MemberExpressionÍuÍ~W®ThisExpressionÍuÍyNªIdentifierÍzÍ~¤id__ÂÂÂÂU³ExpressionStatementÍŒÍ¬V®CallExpressionÍŒÍ«[°MemberExpressionÍŒÍ©W®ThisExpressionÍŒÍNªIdentifierÍ‘Í©¸aboutToBeDeletedInternalÂÂÂP°MethodDefinitionÍ¹ÍóÂÂNªIdentifierÍ½ÍÃ¦status£getQ²FunctionExpressionÍÃÍóÀÂÂÂO®BlockStatementÍÆÍó‘Ôr]”¤type¥start£end¨argument¯ReturnStatementÍÑÍìV®CallExpressionÍØÍë[°MemberExpressionÍØÍé[°MemberExpressionÍØÍåW®ThisExpressionÍØÍÜNªIdentifierÍİÍå¨__statusÂÂNªIdentifierÍæÍé£getÂÂÂP°MethodDefinitionÍùÍ<ÂÂNªIdentifierÍıÍ¦status£setQ²FunctionExpressionÍÍ<ÀÂÂÂ‘NªIdentifierÍÍ¨newValueO®BlockStatementÍÍ<‘U³ExpressionStatementÍÍ5V®CallExpressionÍÍ4[°MemberExpressionÍÍ*[°MemberExpressionÍÍ&W®ThisExpressionÍÍNªIdentifierÍÍ&¨__statusÂÂNªIdentifierÍ'Í*£setÂÂ‘NªIdentifierÍ+Í3¨newValueÂP°MethodDefinitionÍBÍ„ÂÂNªIdentifierÍFÍPªframeCount£getQ²FunctionExpressionÍPÍ„ÀÂÂÂO®BlockStatementÍSÍ„‘]¯ReturnStatementÍ^Í}V®CallExpressionÍeÍ|[°MemberExpressionÍeÍz[°MemberExpressionÍeÍvW®ThisExpressionÍeÍiNªIdentifierÍjÍv¬__frameCountÂÂNªIdentifierÍwÍz£getÂÂÂP°MethodDefinitionÍŠÍÕÂÂNªIdentifierÍÍ˜ªframeCount£setQ²FunctionExpressionÍ˜ÍÕÀÂÂÂ‘NªIdentifierÍ™Í¡¨newValueO®BlockStatementÍ£ÍÕ‘U³ExpressionStatementÍ®ÍÎV®CallExpressionÍ®ÍÍ[°MemberExpressionÍ®ÍÃ[°MemberExpressionÍ®Í¿W®ThisExpressionÍ®Í²NªIdentifierÍ³Í¿¬__frameCountÂÂNªIdentifierÍÀÍÃ£setÂÂ‘NªIdentifierÍÄÍÌ¨newValueÂP°MethodDefinitionÍÛÍÂÂNªIdentifierÍßÍéªframeWidth£getQ²FunctionExpressionÍéÍÀÂÂÂO®BlockStatementÍìÍ‘]¯ReturnStatementÍ÷ÍV®CallExpressionÍşÍ[°MemberExpressionÍşÍ[°MemberExpressionÍşÍW®ThisExpressionÍşÍNªIdentifierÍÍ¬__frameWidthÂÂNªIdentifierÍÍ£getÂÂÂP°MethodDefinitionÍ#ÍnÂÂNªIdentifierÍ'Í1ªframeWidth£setQ²FunctionExpressionÍ1ÍnÀÂÂÂ‘NªIdentifierÍ2Í:¨newValueO®BlockStatementÍ<Ín‘U³ExpressionStatementÍGÍgV®CallExpressionÍGÍf[°MemberExpressionÍGÍ\[°MemberExpressionÍGÍXW®ThisExpressionÍGÍKNªIdentifierÍLÍX¬__frameWidthÂÂNªIdentifierÍYÍ\£setÂÂ‘NªIdentifierÍ]Íe¨newValueÂP°MethodDefinitionÍtÍ¸ÂÂNªIdentifierÍxÍƒ«frameHeight£getQ²FunctionExpressionÍƒÍ¸ÀÂÂÂO®BlockStatementÍ†Í¸‘]¯ReturnStatementÍ‘Í±V®CallExpressionÍ˜Í°[°MemberExpressionÍ˜Í®[°MemberExpressionÍ˜ÍªW®ThisExpressionÍ˜ÍœNªIdentifierÍÍª­__frameHeightÂÂNªIdentifierÍ«Í®£getÂÂÂP°MethodDefinitionÍ¾ÍÂÂNªIdentifierÍÂÍÍ«frameHeight£setQ²FunctionExpressionÍÍÍÀÂÂÂ‘NªIdentifierÍÎÍÖ¨newValueO®BlockStatementÍØÍ‘U³ExpressionStatementÍãÍV®CallExpressionÍãÍ[°MemberExpressionÍãÍù[°MemberExpressionÍãÍõW®ThisExpressionÍãÍçNªIdentifierÍèÍõ­__frameHeightÂÂNªIdentifierÍöÍù£setÂÂ‘NªIdentifierÍúÍ¨newValueÂP°MethodDefinitionÍÍSÂÂNªIdentifierÍÍªisDecoding£getQ²FunctionExpressionÍÍSÀÂÂÂO®BlockStatementÍ"ÍS‘]¯ReturnStatementÍ-ÍLV®CallExpressionÍ4ÍK[°MemberExpressionÍ4ÍI[°MemberExpressionÍ4ÍEW®ThisExpressionÍ4Í8NªIdentifierÍ9ÍE¬__isDecodingÂÂNªIdentifierÍFÍI£getÂÂÂP°MethodDefinitionÍYÍ¤ÂÂNªIdentifierÍ]ÍgªisDecoding£setQ²FunctionExpressionÍgÍ¤ÀÂÂÂ‘NªIdentifierÍhÍp¨newValueO®BlockStatementÍrÍ¤‘U³ExpressionStatementÍ}ÍV®CallExpressionÍ}Íœ[°MemberExpressionÍ}Í’[°MemberExpressionÍ}ÍW®ThisExpressionÍ}ÍNªIdentifierÍ‚Í¬__isDecodingÂÂNªIdentifierÍÍ’£setÂÂ‘NªIdentifierÍ“Í›¨newValueÂP°MethodDefinitionÍªÍşÂÂNªIdentifierÍ®ÍÁ³latestFramePixelMap£getQ²FunctionExpressionÍÁÍşÀÂÂÂO®BlockStatementÍÄÍş‘]¯ReturnStatementÍÏÍ÷V®CallExpressionÍÖÍö[°MemberExpressionÍÖÍô[°MemberExpressionÍÖÍğW®ThisExpressionÍÖÍÚNªIdentifierÍÛÍğµ__latestFramePixelMapÂÂNªIdentifierÍñÍô£getÂÂÂP°MethodDefinitionÍÍaÂÂNªIdentifierÍÍ³latestFramePixelMap£setQ²FunctionExpressionÍÍaÀÂÂÂ‘NªIdentifierÍÍ$¨newValueO®BlockStatementÍ&Ía‘U³ExpressionStatementÍ1ÍZV®CallExpressionÍ1ÍY[°MemberExpressionÍ1ÍO[°MemberExpressionÍ1ÍKW®ThisExpressionÍ1Í5NªIdentifierÍ6ÍKµ__latestFramePixelMapÂÂNªIdentifierÍLÍO£setÂÂ‘NªIdentifierÍPÍX¨newValueÂP°MethodDefinitionÍ¶ÍHÂÂNªIdentifierÍ¼ÍÅ©pickVideo¦methodQ²FunctionExpressionÍÅÍHÀÂÂÃO®BlockStatementÍÈÍH’Ôr^–¤type¥start£end¥block§handler©finalizer¬TryStatementÍÓÍ+O®BlockStatementÍ×Í²”Ôr_•¤type¥start£end¬declarations¤kind³VariableDeclarationÍæÍ‘Ôr`•¤type¥start£end¢id¤init²VariableDeclaratorÍìÍNªIdentifierÍìÍï£ctxV®CallExpressionÍòÍNªIdentifierÍòÍüªgetContext‘W®ThisExpressionÍıÍÂ¥const_³VariableDeclarationÍÍH‘`²VariableDeclaratorÍÍGNªIdentifierÍÍ¦picker\­NewExpressionÍ ÍG[°MemberExpressionÍ$ÍENªIdentifierÍ$Í5±photoAccessHelperNªIdentifierÍ6ÍE¯PhotoViewPickerÂÂ¥const_³VariableDeclarationÍVÍü‘`²VariableDeclaratorÍ\ÍûNªIdentifierÍ\Íb¦result]¯AwaitExpressionÍeÍûV®CallExpressionÍkÍû[°MemberExpressionÍkÍxNªIdentifierÍkÍq¦pickerNªIdentifierÍrÍx¦selectÂÂ‘Ôra”¤type¥start£endªproperties°ObjectExpressionÍyÍú’Ôrb™¤type¥start£end¦method©shorthand¨computed£key¥value¤kind¨PropertyÍŒÍÅÂÂÂNªIdentifierÍŒÍ”¨MIMEType[°MemberExpressionÍ–ÍÅ[°MemberExpressionÍ–ÍºNªIdentifierÍ–Í§±photoAccessHelperNªIdentifierÍ¨Íº²PhotoViewMIMETypesÂÂNªIdentifierÍ»ÍÅªVIDEO_TYPEÂÂ¤initb¨PropertyÍØÍêÂÂÂNªIdentifierÍØÍç¯maxSelectNumberT§LiteralÍéÍê¡1¤initÂ¥constX«IfStatementÍ
+Í§Y±LogicalExpressionÍÍ=[°MemberExpressionÍÍNªIdentifierÍÍ¦resultNªIdentifierÍÍ©photoUrisÂÂ¢&&Y°BinaryExpressionÍ"Í=[°MemberExpressionÍ"Í9[°MemberExpressionÍ"Í2NªIdentifierÍ"Í(¦resultNªIdentifierÍ)Í2©photoUrisÂÂNªIdentifierÍ3Í9¦lengthÂÂ¡>T§LiteralÍ<Í= ¡0O®BlockStatementÍ?Í§“_³VariableDeclarationÍ
+Í*‘`²VariableDeclaratorÍÍ)NªIdentifierÍÍ£uri[°MemberExpressionÍÍ)[°MemberExpressionÍÍ&NªIdentifierÍÍ¦resultNªIdentifierÍÍ&©photoUrisÂÂT§LiteralÍ'Í( ¡0ÃÂ¥constU³ExpressionStatementÍ<Í{V®CallExpressionÍ<Íz[°MemberExpressionÍ<ÍFNªIdentifierÍ<ÍA¥hilogNªIdentifierÍBÍF¤infoÂÂ”T§LiteralÍGÍM ¦0x0000NªIdentifierÍOÍR£TAGT§LiteralÍTÍt¾Selected video URI: %{public}sÙ 'Selected video URI: %{public}s'NªIdentifierÍvÍy£uriÂ]¯ReturnStatementÍÍ˜NªIdentifierÍ”Í—£uriÀÔrc•¤type¥start£end¥param¤body«CatchClauseÍ¼Í+NªIdentifierÍÃÍÄ¡eO®BlockStatementÍÆÍ+‘U³ExpressionStatementÍÕÍ V®CallExpressionÍÕÍ[°MemberExpressionÍÕÍàNªIdentifierÍÕÍÚ¥hilogNªIdentifierÍÛÍà¥errorÂÂ”T§LiteralÍáÍç ¦0x0000NªIdentifierÍéÍì£TAGT§LiteralÍîÍ»pickVideo error: %{public}s½'pickVideo error: %{public}s'V®CallExpressionÍÍ[°MemberExpressionÍÍNªIdentifierÍÍ¤JSONNªIdentifierÍÍ©stringifyÂÂ‘NªIdentifierÍÍ¡eÂÂÀ]¯ReturnStatementÍ5ÍAT§LiteralÍ<Í@À¤nullP°MethodDefinitionÍÍ×ÂÂNªIdentifierÍÍ©«startDecode¦methodQ²FunctionExpressionÍ©Í×ÀÂÂÂ‘NªIdentifierÍªÍ²¨filePathO®BlockStatementÍ´Í×”U³ExpressionStatementÍ¿ÍÓZ´AssignmentExpressionÍ¿ÍÒ¡=[°MemberExpressionÍ¿ÍÎW®ThisExpressionÍ¿ÍÃNªIdentifierÍÄÍÎªframeCountÂÂT§LiteralÍÑÍÒ ¡0U³ExpressionStatementÍİÍôZ´AssignmentExpressionÍİÍó¡=[°MemberExpressionÍİÍìW®ThisExpressionÍİÍáNªIdentifierÍâÍìªisDecodingÂÂT§LiteralÍïÍóÃ¤trueU³ExpressionStatementÍşÍZ´AssignmentExpressionÍşÍ¡=[°MemberExpressionÍşÍ	W®ThisExpressionÍşÍNªIdentifierÍÍ	¦statusÂÂT§LiteralÍÍ«Decodingâ€¦­'Decodingâ€¦'U³ExpressionStatementÍ"ÍĞV®CallExpressionÍ"ÍÏ[°MemberExpressionÍ"Í<NªIdentifierÍ"Í*¨libentryNªIdentifierÍ+Í<±decodeVideoFramesÂÂ’NªIdentifierÍ=ÍE¨filePathQ·ArrowFunctionExpressionÍGÍÎÀÂÂÂ”NªIdentifierÍHÍM¥frameNªIdentifierÍOÍT¥widthNªIdentifierÍVÍ\¦heightNªIdentifierÍ^Íc¥isEosO®BlockStatementÍhÍÎ–X«IfStatementÍwÍ¢Y±LogicalExpressionÍ{Í˜Y°BinaryExpressionÍ{Í†NªIdentifierÍ{Í€¥isEos£===T§LiteralÍ…Í†¡1¢||Y°BinaryExpressionÍŠÍ˜NªIdentifierÍŠÍ¥frame£===T§LiteralÍ”Í˜À¤nullO®BlockStatementÍšÍ¢”U³ExpressionStatementÍ­ÍæZ´AssignmentExpressionÍ­Íå¡=[°MemberExpressionÍ­Í¸W®ThisExpressionÍ­Í±NªIdentifierÍ²Í¸¦statusÂÂÔrd•¤type¥start£end«expressions¦quasis¯TemplateLiteralÍ»Íå‘[°MemberExpressionÍÅÍÔW®ThisExpressionÍÅÍÉNªIdentifierÍÊÍÔªframeCountÂÂ’Ôre•¤type¥start£end¥value¤tail¯TemplateElementÍ¼ÍÃÔrf’£raw¦cooked©Done â€” ©Done â€” Âe¯TemplateElementÍÕÍäf¯ frames decoded¯ frames decodedÃU³ExpressionStatementÍøÍZ´AssignmentExpressionÍøÍ¡=[°MemberExpressionÍøÍW®ThisExpressionÍøÍüNªIdentifierÍıÍªisDecodingÂÂT§LiteralÍ
+ÍÂ¥falseU³ExpressionStatementÍ"ÍzV®CallExpressionÍ"Íy[°MemberExpressionÍ"Í,NªIdentifierÍ"Í'¥hilogNªIdentifierÍ(Í,¤infoÂÂ”T§LiteralÍ-Í3 ¦0x0000NªIdentifierÍ5Í8£TAGT§LiteralÍ:ÍgÙ+Decoding finished, total frames: %{public}dÙ-'Decoding finished, total frames: %{public}d'[°MemberExpressionÍiÍxW®ThisExpressionÍiÍmNªIdentifierÍnÍxªframeCountÂÂÂ]¯ReturnStatementÍŒÍ“ÀÀU³ExpressionStatementÍ°ÍÅZ´AssignmentExpressionÍ°ÍÄ¢+=[°MemberExpressionÍ°Í¿W®ThisExpressionÍ°Í´NªIdentifierÍµÍ¿ªframeCountÂÂT§LiteralÍÃÍÄ¡1U³ExpressionStatementÍÓÍëZ´AssignmentExpressionÍÓÍê¡=[°MemberExpressionÍÓÍâW®ThisExpressionÍÓÍ×NªIdentifierÍØÍâªframeWidthÂÂNªIdentifierÍåÍê¥widthU³ExpressionStatementÍùÍZ´AssignmentExpressionÍùÍ¡=[°MemberExpressionÍùÍ	W®ThisExpressionÍùÍıNªIdentifierÍşÍ	«frameHeightÂÂNªIdentifierÍÍ¦heightU³ExpressionStatementÍÍ,V®CallExpressionÍÍ+[°MemberExpressionÍÍW®ThisExpressionÍÍ	NªIdentifierÍ
+Í«renderFrameÂÂ“NªIdentifierÍÍ¥frameNªIdentifierÍÍ"¥widthNªIdentifierÍ$Í*¦heightÂU³ExpressionStatementÍ:ÍÃV®CallExpressionÍ:ÍÂ[°MemberExpressionÍ:ÍENªIdentifierÍ:Í?¥hilogNªIdentifierÍ@ÍE¥debugÂÂ—T§LiteralÍFÍL ¦0x0000NªIdentifierÍNÍQ£TAGT§LiteralÍSÍÙ:Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}dÙ<'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d'[°MemberExpressionÍ‘Í W®ThisExpressionÍ‘Í•NªIdentifierÍ–Í ªframeCountÂÂNªIdentifierÍ¢Í§¥widthNªIdentifierÍ©Í¯¦height[°MemberExpressionÍ±ÍÁNªIdentifierÍ±Í¶¥frameNªIdentifierÍ·ÍÁªbyteLengthÂÂÂÂP°MethodDefinitionÍ-Í(ÂÂNªIdentifierÍ-Í8«renderFrame¦methodQ²FunctionExpressionÍ8Í(ÀÂÂÂ“NªIdentifierÍ9Í=¤rgbaNªIdentifierÍ?ÍD¥widthNªIdentifierÍFÍL¦heightO®BlockStatementÍNÍ(“X«IfStatementÍYÍY°BinaryExpressionÍ]ÍwY°BinaryExpressionÍ]Íq[°MemberExpressionÍ]ÍlW®ThisExpressionÍ]ÍaNªIdentifierÍbÍlªframeCountÂÂ¡%T§LiteralÍoÍq
+¢10£!==T§LiteralÍvÍw ¡0]¯ReturnStatementÍ†ÍÀÀ_³VariableDeclarationÍ—Í>‘`²VariableDeclaratorÍÍ=NªIdentifierÍÍ¡¤optsa°ObjectExpressionÍ¤Í=“b¨PropertyÍ³ÍÙÂÂÂNªIdentifierÍ³Í·¤sizea°ObjectExpressionÍ¹ÍÙ’b¨PropertyÍ»ÍÇÂÂÂNªIdentifierÍ»ÍÀ¥widthNªIdentifierÍÂÍÇ¥width¤initb¨PropertyÍÉÍ×ÂÂÂNªIdentifierÍÉÍÏ¦heightNªIdentifierÍÑÍ×¦height¤init¤initb¨PropertyÍèÍÂÂÂNªIdentifierÍèÍó«pixelFormat[°MemberExpressionÍõÍ[°MemberExpressionÍõÍ	NªIdentifierÍõÍú¥imageNªIdentifierÍûÍ	®PixelMapFormatÂÂNªIdentifierÍ
+Í©RGBA_8888ÂÂ¤initb¨PropertyÍ"Í1ÂÂÂNªIdentifierÍ"Í*¨editableT§LiteralÍ,Í1Â¥false¤init¥constU³ExpressionStatementÍHÍ!V®CallExpressionÍHÍ [°MemberExpressionÍHÍµV®CallExpressionÍHÍ¯[°MemberExpressionÍHÍmV®CallExpressionÍHÍh[°MemberExpressionÍHÍ\NªIdentifierÍHÍM¥imageNªIdentifierÍNÍ\®createPixelMapÂÂ’NªIdentifierÍ]Ía¤rgbaNªIdentifierÍcÍg¤optsÂNªIdentifierÍiÍm¤thenÂÂ‘Q·ArrowFunctionExpressionÍnÍ®ÀÂÂÂ‘NªIdentifierÍoÍq¢pmO®BlockStatementÍvÍ®‘U³ExpressionStatementÍ…Í£Z´AssignmentExpressionÍ…Í¢¡=[°MemberExpressionÍ…ÍW®ThisExpressionÍ…Í‰NªIdentifierÍŠÍ³latestFramePixelMapÂÂNªIdentifierÍ Í¢¢pmÂNªIdentifierÍ°Íµ¥catchÂÂ‘Q·ArrowFunctionExpressionÍ¶ÍÀÂÂÂ‘NªIdentifierÍ·Í¸¡eO®BlockStatementÍ½Í‘U³ExpressionStatementÍÌÍV®CallExpressionÍÌÍ[°MemberExpressionÍÌÍÖNªIdentifierÍÌÍÑ¥hilogNªIdentifierÍÒÍÖ¤warnÂÂ”T§LiteralÍ×Íİ ¦0x0000NªIdentifierÍßÍâ£TAGT§LiteralÍäÍÙ!createPixelMap failed: %{public}sÙ#'createPixelMap failed: %{public}s'[°MemberExpressionÍ	ÍNªIdentifierÍ	Í
+¡eNªIdentifierÍÍ§messageÂÂÂÂP°MethodDefinitionÍ~Í2ğÂÂNªIdentifierÍ~Í‹­initialRender¦methodQ²FunctionExpressionÍ‹Í2ğÀÂÂÂO®BlockStatementÍÍ2ğ’U³ExpressionStatementÍ™Í2ÊV®CallExpressionÍ™Í2É[°MemberExpressionÍ™Í·W®ThisExpressionÍ™ÍNªIdentifierÍÍ·¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ¸Í2¸ÀÂÂÂ’NªIdentifierÍ¹Í¿¦elmtIdNªIdentifierÍÁÍĞ¯isInitialRenderO®BlockStatementÍÕÍ2¸“U³ExpressionStatementÍäÍ1ĞV®CallExpressionÍäÍ1Ï[°MemberExpressionÍäÍùNªIdentifierÍäÍò®NavDestinationNªIdentifierÍóÍù¦createÂÂ’Q·ArrowFunctionExpressionÍúÍ1~ÀÂÂÂO®BlockStatementÍ Í1~U³ExpressionStatementÍÍJV®CallExpressionÍÍI[°MemberExpressionÍÍ1W®ThisExpressionÍÍNªIdentifierÍÍ1¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ2Í@ÀÂÂÂ’NªIdentifierÍ3Í9¦elmtIdNªIdentifierÍ;ÍJ¯isInitialRenderO®BlockStatementÍOÍ@”U³ExpressionStatementÍfÍƒV®CallExpressionÍfÍ‚[°MemberExpressionÍfÍsNªIdentifierÍfÍl¦ColumnNªIdentifierÍmÍs¦createÂÂ‘a°ObjectExpressionÍtÍ‘b¨PropertyÍvÍÂÂÂNªIdentifierÍvÍ{¥spaceT§LiteralÍ}Í¢16¤initÂU³ExpressionStatementÍ™Í®V®CallExpressionÍ™Í­[°MemberExpressionÍ™Í¥NªIdentifierÍ™ÍŸ¦ColumnNªIdentifierÍ Í¥¥widthÂÂ‘T§LiteralÍ¦Í¬¤100%¦'100%'ÂU³ExpressionStatementÍÄÍÚV®CallExpressionÍÄÍÙ[°MemberExpressionÍÄÍÑNªIdentifierÍÄÍÊ¦ColumnNªIdentifierÍËÍÑ¦heightÂÂ‘T§LiteralÍÒÍØ¤100%¦'100%'ÂU³ExpressionStatementÍğÍ-V®CallExpressionÍğÍ,[°MemberExpressionÍğÍşNªIdentifierÍğÍö¦ColumnNªIdentifierÍ÷Íş§paddingÂÂ‘a°ObjectExpressionÍÿÍ+”b¨PropertyÍÍ	ÂÂÂNªIdentifierÍÍ¤leftT§LiteralÍÍ	¢16¤initb¨PropertyÍÍÂÂÂNªIdentifierÍÍ¥rightT§LiteralÍÍ¢16¤initb¨PropertyÍÍÂÂÂNªIdentifierÍÍ£topT§LiteralÍÍ¢16¤initb¨PropertyÍÍ)ÂÂÂNªIdentifierÍÍ%¦bottomT§LiteralÍ'Í)¢16¤initÂNªIdentifierÍBÍH¦ColumnÂU³ExpressionStatementÍ\Í%’V®CallExpressionÍ\Í%‘[°MemberExpressionÍ\ÍzW®ThisExpressionÍ\Í`NªIdentifierÍaÍz¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ{Í%ŒÀÂÂÂ’NªIdentifierÍ|Í‚¦elmtIdNªIdentifierÍ„Í“¯isInitialRenderO®BlockStatementÍ˜Í%Œ’U³ExpressionStatementÍ¯Í»V®CallExpressionÍ¯Íº[°MemberExpressionÍ¯Í¸NªIdentifierÍ¯Í±¢IfNªIdentifierÍ²Í¸¦createÂÂÂX«IfStatementÍöÍ%yY°BinaryExpressionÍúÍ [°MemberExpressionÍúÍW®ThisExpressionÍúÍşNªIdentifierÍÿÍ³latestFramePixelMapÂÂ£!==NªIdentifierÍÍ ©undefinedO®BlockStatementÍ"Í!‘U³ExpressionStatementÍ=Í!wV®CallExpressionÍ=Í!v[°MemberExpressionÍ=Í\W®ThisExpressionÍ=ÍANªIdentifierÍBÍ\ºifElseBranchUpdateFunctionÂÂ’T§LiteralÍ]Í^ ¡0Q·ArrowFunctionExpressionÍ`Í!uÀÂÂÂO®BlockStatementÍfÍ!u‘U³ExpressionStatementÍ…Í!ZV®CallExpressionÍ…Í!Y[°MemberExpressionÍ…Í£W®ThisExpressionÍ…Í‰NªIdentifierÍŠÍ£¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ¤Í!QÀÂÂÂ’NªIdentifierÍ¥Í«¦elmtIdNªIdentifierÍ­Í¼¯isInitialRenderO®BlockStatementÍÁÍ!Q•U³ExpressionStatementÍäÍ V®CallExpressionÍäÍ 
+[°MemberExpressionÍäÍğNªIdentifierÍäÍé¥ImageNªIdentifierÍêÍğ¦createÂÂ‘[°MemberExpressionÍñÍ 	W®ThisExpressionÍñÍõNªIdentifierÍöÍ 	³latestFramePixelMapÂÂÂU³ExpressionStatementÍ -Í AV®CallExpressionÍ -Í @[°MemberExpressionÍ -Í 8NªIdentifierÍ -Í 2¥ImageNªIdentifierÍ 3Í 8¥widthÂÂ‘T§LiteralÍ 9Í ?¤100%¦'100%'ÂU³ExpressionStatementÍ cÍ ¶V®CallExpressionÍ cÍ µ[°MemberExpressionÍ cÍ tNªIdentifierÍ cÍ h¥ImageNªIdentifierÍ iÍ t«aspectRatioÂÂ‘XµConditionalExpressionÍ uÍ ´Y°BinaryExpressionÍ uÍ ˆ[°MemberExpressionÍ uÍ „W®ThisExpressionÍ uÍ yNªIdentifierÍ zÍ „ªframeWidthÂÂ¡>T§LiteralÍ ‡Í ˆ ¡0Y°BinaryExpressionÍ ‹Í ­[°MemberExpressionÍ ‹Í šW®ThisExpressionÍ ‹Í NªIdentifierÍ Í šªframeWidthÂÂ¡/[°MemberExpressionÍ Í ­W®ThisExpressionÍ Í ¡NªIdentifierÍ ¢Í ­«frameHeightÂÂT§LiteralÍ °Í ´Ë?üzáG®{¤1.78ÂU³ExpressionStatementÍ ØÍ úV®CallExpressionÍ ØÍ ù[°MemberExpressionÍ ØÍ çNªIdentifierÍ ØÍ İ¥ImageNªIdentifierÍ ŞÍ ç©objectFitÂÂ‘[°MemberExpressionÍ èÍ øNªIdentifierÍ èÍ ğ¨ImageFitNªIdentifierÍ ñÍ ø§ContainÂÂÂU³ExpressionStatementÍ!Í!2V®CallExpressionÍ!Í!1[°MemberExpressionÍ!Í!.NªIdentifierÍ!Í!!¥ImageNªIdentifierÍ!"Í!.¬borderRadiusÂÂ‘T§LiteralÍ!/Í!0¡8ÂNªIdentifierÍ!SÍ!X¥ImageÂÂO®BlockStatementÍ!©Í%y‘U³ExpressionStatementÍ!ÄÍ%bV®CallExpressionÍ!ÄÍ%a[°MemberExpressionÍ!ÄÍ!ãW®ThisExpressionÍ!ÄÍ!ÈNªIdentifierÍ!ÉÍ!ãºifElseBranchUpdateFunctionÂÂ’T§LiteralÍ!äÍ!å¡1Q·ArrowFunctionExpressionÍ!çÍ%`ÀÂÂÂO®BlockStatementÍ!íÍ%`”U³ExpressionStatementÍ"Í#ÄV®CallExpressionÍ"Í#Ã[°MemberExpressionÍ"Í"*W®ThisExpressionÍ"Í"NªIdentifierÍ"Í"*¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ"+Í#½ÀÂÂÂ’NªIdentifierÍ",Í"2¦elmtIdNªIdentifierÍ"4Í"C¯isInitialRenderO®BlockStatementÍ"HÍ#½–U³ExpressionStatementÍ"kÍ"xV®CallExpressionÍ"kÍ"w[°MemberExpressionÍ"kÍ"uNªIdentifierÍ"kÍ"n£RowNªIdentifierÍ"oÍ"u¦createÂÂÂU³ExpressionStatementÍ"šÍ"¬V®CallExpressionÍ"šÍ"«[°MemberExpressionÍ"šÍ"£NªIdentifierÍ"šÍ"£RowNªIdentifierÍ"Í"£¥widthÂÂ‘T§LiteralÍ"¤Í"ª¤100%¦'100%'ÂU³ExpressionStatementÍ"ÎÍ"ŞV®CallExpressionÍ"ÎÍ"İ[°MemberExpressionÍ"ÎÍ"ØNªIdentifierÍ"ÎÍ"Ñ£RowNªIdentifierÍ"ÒÍ"Ø¦heightÂÂ‘T§LiteralÍ"ÙÍ"ÜÌÈ£200ÂU³ExpressionStatementÍ# Í#%V®CallExpressionÍ# Í#$[°MemberExpressionÍ# Í#NªIdentifierÍ# Í#£RowNªIdentifierÍ#Í#®justifyContentÂÂ‘[°MemberExpressionÍ#Í##NªIdentifierÍ#Í#©FlexAlignNªIdentifierÍ#Í##¦CenterÂÂÂU³ExpressionStatementÍ#GÍ#hV®CallExpressionÍ#GÍ#g[°MemberExpressionÍ#GÍ#ZNªIdentifierÍ#GÍ#J£RowNªIdentifierÍ#KÍ#Z¯backgroundColorÂÂ‘T§LiteralÍ#[Í#f©#1A000000«'#1A000000'ÂU³ExpressionStatementÍ#ŠÍ#V®CallExpressionÍ#ŠÍ#[°MemberExpressionÍ#ŠÍ#šNªIdentifierÍ#ŠÍ#£RowNªIdentifierÍ#Í#š¬borderRadiusÂÂ‘T§LiteralÍ#›Í#œ¡8ÂNªIdentifierÍ#¿Í#Â£RowÂU³ExpressionStatementÍ#âÍ$ôV®CallExpressionÍ#âÍ$ó[°MemberExpressionÍ#âÍ$ W®ThisExpressionÍ#âÍ#æNªIdentifierÍ#çÍ$ ¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ$Í$ìÀÂÂÂ’NªIdentifierÍ$Í$¦elmtIdNªIdentifierÍ$
+Í$¯isInitialRenderO®BlockStatementÍ$Í$ì“U³ExpressionStatementÍ$AÍ$]V®CallExpressionÍ$AÍ$\[°MemberExpressionÍ$AÍ$LNªIdentifierÍ$AÍ$E¤TextNªIdentifierÍ$FÍ$L¦createÂÂ‘T§LiteralÍ$MÍ$[¬No frame yet®'No frame yet'ÂU³ExpressionStatementÍ$Í$‘V®CallExpressionÍ$Í$[°MemberExpressionÍ$Í$ŒNªIdentifierÍ$Í$ƒ¤TextNªIdentifierÍ$„Í$Œ¨fontSizeÂÂ‘T§LiteralÍ$Í$¢14ÂU³ExpressionStatementÍ$³Í$ÍV®CallExpressionÍ$³Í$Ì[°MemberExpressionÍ$³Í$ÁNªIdentifierÍ$³Í$·¤TextNªIdentifierÍ$¸Í$Á©fontColorÂÂ‘T§LiteralÍ$ÂÍ$Ë§#888888©'#888888'ÂNªIdentifierÍ$îÍ$ò¤TextÂU³ExpressionStatementÍ%Í%V®CallExpressionÍ%Í%[°MemberExpressionÍ%Í%NªIdentifierÍ%Í%¤TextNªIdentifierÍ%Í%£popÂÂÂU³ExpressionStatementÍ%;Í%EV®CallExpressionÍ%;Í%D[°MemberExpressionÍ%;Í%BNªIdentifierÍ%;Í%>£RowNªIdentifierÍ%?Í%B£popÂÂÂÂNªIdentifierÍ%Í%¢IfÂU³ExpressionStatementÍ%¤Í%­V®CallExpressionÍ%¤Í%¬[°MemberExpressionÍ%¤Í%ªNªIdentifierÍ%¤Í%¦¢IfNªIdentifierÍ%§Í%ª£popÂÂÂU³ExpressionStatementÍ%¿Í'šV®CallExpressionÍ%¿Í'™[°MemberExpressionÍ%¿Í%İW®ThisExpressionÍ%¿Í%ÃNªIdentifierÍ%ÄÍ%İ¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ%ŞÍ'ÀÂÂÂ’NªIdentifierÍ%ßÍ%å¦elmtIdNªIdentifierÍ%çÍ%ö¯isInitialRenderO®BlockStatementÍ%ûÍ'•U³ExpressionStatementÍ&0Í&LV®CallExpressionÍ&0Í&K[°MemberExpressionÍ&0Í&=NªIdentifierÍ&0Í&6¦ColumnNªIdentifierÍ&7Í&=¦createÂÂ‘a°ObjectExpressionÍ&>Í&J‘b¨PropertyÍ&@Í&HÂÂÂNªIdentifierÍ&@Í&E¥spaceT§LiteralÍ&GÍ&H¡4¤initÂU³ExpressionStatementÍ&€Í&•V®CallExpressionÍ&€Í&”[°MemberExpressionÍ&€Í&ŒNªIdentifierÍ&€Í&†¦ColumnNªIdentifierÍ&‡Í&Œ¥widthÂÂ‘T§LiteralÍ&Í&“¤100%¦'100%'ÂU³ExpressionStatementÍ&ÉÍ&ÜV®CallExpressionÍ&ÉÍ&Û[°MemberExpressionÍ&ÉÍ&×NªIdentifierÍ&ÉÍ&Ï¦ColumnNªIdentifierÍ&ĞÍ&×§paddingÂÂ‘T§LiteralÍ&ØÍ&Ú¢12ÂU³ExpressionStatementÍ'Í'2V®CallExpressionÍ'Í'1[°MemberExpressionÍ'Í'&NªIdentifierÍ'Í'¦ColumnNªIdentifierÍ'Í'&¯backgroundColorÂÂ‘T§LiteralÍ''Í'0§#F5F5F5©'#F5F5F5'ÂU³ExpressionStatementÍ'fÍ'}V®CallExpressionÍ'fÍ'|[°MemberExpressionÍ'fÍ'yNªIdentifierÍ'fÍ'l¦ColumnNªIdentifierÍ'mÍ'y¬borderRadiusÂÂ‘T§LiteralÍ'zÍ'{¡8ÂNªIdentifierÍ'’Í'˜¦ColumnÂU³ExpressionStatementÍ'¬Í(¶V®CallExpressionÍ'¬Í(µ[°MemberExpressionÍ'¬Í'ÊW®ThisExpressionÍ'¬Í'°NªIdentifierÍ'±Í'Ê¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ'ËÍ(®ÀÂÂÂ’NªIdentifierÍ'ÌÍ'Ò¦elmtIdNªIdentifierÍ'ÔÍ'ã¯isInitialRenderO®BlockStatementÍ'èÍ(®“U³ExpressionStatementÍ'ÿÍ(%V®CallExpressionÍ'ÿÍ($[°MemberExpressionÍ'ÿÍ(
+NªIdentifierÍ'ÿÍ(¤TextNªIdentifierÍ(Í(
+¦createÂÂ‘d¯TemplateLiteralÍ(Í(#‘[°MemberExpressionÍ(Í(!W®ThisExpressionÍ(Í(NªIdentifierÍ(Í(!¦statusÂÂ’e¯TemplateElementÍ(Í(f¨Status: ¨Status: Âe¯TemplateElementÍ("Í("f  ÃÂU³ExpressionStatementÍ(;Í(MV®CallExpressionÍ(;Í(L[°MemberExpressionÍ(;Í(HNªIdentifierÍ(;Í(?¤TextNªIdentifierÍ(@Í(H¨fontSizeÂÂ‘T§LiteralÍ(IÍ(K¢14ÂU³ExpressionStatementÍ(cÍ(›V®CallExpressionÍ(cÍ(š[°MemberExpressionÍ(cÍ(qNªIdentifierÍ(cÍ(g¤TextNªIdentifierÍ(hÍ(q©fontColorÂÂ‘XµConditionalExpressionÍ(rÍ(™[°MemberExpressionÍ(rÍ(W®ThisExpressionÍ(rÍ(vNªIdentifierÍ(wÍ(ªisDecodingÂÂT§LiteralÍ(„Í(§#007DFF©'#007DFF'T§LiteralÍ(Í(™§#333333©'#333333'ÂNªIdentifierÍ(°Í(´¤TextÂU³ExpressionStatementÍ(ÈÍ(ÓV®CallExpressionÍ(ÈÍ(Ò[°MemberExpressionÍ(ÈÍ(ĞNªIdentifierÍ(ÈÍ(Ì¤TextNªIdentifierÍ(ÍÍ(Ğ£popÂÂÂU³ExpressionStatementÍ(åÍ)­V®CallExpressionÍ(åÍ)¬[°MemberExpressionÍ(åÍ)W®ThisExpressionÍ(åÍ(éNªIdentifierÍ(êÍ)¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ)Í)¥ÀÂÂÂ’NªIdentifierÍ)Í)¦elmtIdNªIdentifierÍ)Í)¯isInitialRenderO®BlockStatementÍ)!Í)¥’U³ExpressionStatementÍ)8Í)jV®CallExpressionÍ)8Í)i[°MemberExpressionÍ)8Í)CNªIdentifierÍ)8Í)<¤TextNªIdentifierÍ)=Í)C¦createÂÂ‘d¯TemplateLiteralÍ)DÍ)h‘[°MemberExpressionÍ)WÍ)fW®ThisExpressionÍ)WÍ)[NªIdentifierÍ)\Í)fªframeCountÂÂ’e¯TemplateElementÍ)EÍ)Uf°Frames decoded: °Frames decoded: Âe¯TemplateElementÍ)gÍ)gf  ÃÂU³ExpressionStatementÍ)€Í)’V®CallExpressionÍ)€Í)‘[°MemberExpressionÍ)€Í)NªIdentifierÍ)€Í)„¤TextNªIdentifierÍ)…Í)¨fontSizeÂÂ‘T§LiteralÍ)Í)¢14ÂNªIdentifierÍ)§Í)«¤TextÂU³ExpressionStatementÍ)¿Í)ÊV®CallExpressionÍ)¿Í)É[°MemberExpressionÍ)¿Í)ÇNªIdentifierÍ)¿Í)Ã¤TextNªIdentifierÍ)ÄÍ)Ç£popÂÂÂU³ExpressionStatementÍ)ÜÍ,ÕV®CallExpressionÍ)ÜÍ,Ô[°MemberExpressionÍ)ÜÍ)úW®ThisExpressionÍ)ÜÍ)àNªIdentifierÍ)áÍ)ú¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ)ûÍ,ÏÀÂÂÂ’NªIdentifierÍ)üÍ*¦elmtIdNªIdentifierÍ*Í*¯isInitialRenderO®BlockStatementÍ*Í,Ï’U³ExpressionStatementÍ*/Í*;V®CallExpressionÍ*/Í*:[°MemberExpressionÍ*/Í*8NªIdentifierÍ*/Í*1¢IfNªIdentifierÍ*2Í*8¦createÂÂÂX«IfStatementÍ*QÍ,¼Y°BinaryExpressionÍ*UÍ*h[°MemberExpressionÍ*UÍ*dW®ThisExpressionÍ*UÍ*YNªIdentifierÍ*ZÍ*dªframeWidthÂÂ¡>T§LiteralÍ*gÍ*h ¡0O®BlockStatementÍ*jÍ,(‘U³ExpressionStatementÍ*…Í,V®CallExpressionÍ*…Í,[°MemberExpressionÍ*…Í*¤W®ThisExpressionÍ*…Í*‰NªIdentifierÍ*ŠÍ*¤ºifElseBranchUpdateFunctionÂÂ’T§LiteralÍ*¥Í*¦ ¡0Q·ArrowFunctionExpressionÍ*¨Í,ÀÂÂÂO®BlockStatementÍ*®Í,’U³ExpressionStatementÍ*ÍÍ+ËV®CallExpressionÍ*ÍÍ+Ê[°MemberExpressionÍ*ÍÍ*ëW®ThisExpressionÍ*ÍÍ*ÑNªIdentifierÍ*ÒÍ*ë¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ*ìÍ+ÃÀÂÂÂ’NªIdentifierÍ*íÍ*ó¦elmtIdNªIdentifierÍ*õÍ+¯isInitialRenderO®BlockStatementÍ+	Í+Ã’U³ExpressionStatementÍ+,Í+pV®CallExpressionÍ+,Í+o[°MemberExpressionÍ+,Í+7NªIdentifierÍ+,Í+0¤TextNªIdentifierÍ+1Í+7¦createÂÂ‘d¯TemplateLiteralÍ+8Í+n’[°MemberExpressionÍ+GÍ+VW®ThisExpressionÍ+GÍ+KNªIdentifierÍ+LÍ+VªframeWidthÂÂ[°MemberExpressionÍ+\Í+lW®ThisExpressionÍ+\Í+`NªIdentifierÍ+aÍ+l«frameHeightÂÂ“e¯TemplateElementÍ+9Í+Ef¬Resolution: ¬Resolution: Âe¯TemplateElementÍ+WÍ+Zf¤ Ã— ¤ Ã— Âe¯TemplateElementÍ+mÍ+mf  ÃÂU³ExpressionStatementÍ+’Í+¤V®CallExpressionÍ+’Í+£[°MemberExpressionÍ+’Í+ŸNªIdentifierÍ+’Í+–¤TextNªIdentifierÍ+—Í+Ÿ¨fontSizeÂÂ‘T§LiteralÍ+ Í+¢¢14ÂNªIdentifierÍ+ÅÍ+É¤TextÂU³ExpressionStatementÍ+éÍ+ôV®CallExpressionÍ+éÍ+ó[°MemberExpressionÍ+éÍ+ñNªIdentifierÍ+éÍ+í¤TextNªIdentifierÍ+îÍ+ñ£popÂÂÂÂO®BlockStatementÍ,CÍ,¼‘U³ExpressionStatementÍ,^Í,¥V®CallExpressionÍ,^Í,¤[°MemberExpressionÍ,^Í,}W®ThisExpressionÍ,^Í,bNªIdentifierÍ,cÍ,}ºifElseBranchUpdateFunctionÂÂ’T§LiteralÍ,~Í,¡1Q·ArrowFunctionExpressionÍ,Í,£ÀÂÂÂO®BlockStatementÍ,‡Í,£ÂNªIdentifierÍ,ÑÍ,Ó¢IfÂU³ExpressionStatementÍ,çÍ,ğV®CallExpressionÍ,çÍ,ï[°MemberExpressionÍ,çÍ,íNªIdentifierÍ,çÍ,é¢IfNªIdentifierÍ,êÍ,í£popÂÂÂU³ExpressionStatementÍ-Í-)V®CallExpressionÍ-Í-([°MemberExpressionÍ-Í-&NªIdentifierÍ-Í-"¦ColumnNªIdentifierÍ-#Í-&£popÂÂÂU³ExpressionStatementÍ-;Í1V®CallExpressionÍ-;Í1[°MemberExpressionÍ-;Í-YW®ThisExpressionÍ-;Í-?NªIdentifierÍ-@Í-Y¹observeComponentCreation2ÂÂ’Q·ArrowFunctionExpressionÍ-ZÍ1ÀÂÂÂ’NªIdentifierÍ-[Í-a¦elmtIdNªIdentifierÍ-cÍ-r¯isInitialRenderO®BlockStatementÍ-wÍ1–U³ExpressionStatementÍ-´Í.V®CallExpressionÍ-´Í.[°MemberExpressionÍ-´Í-ÊNªIdentifierÍ-´Í-º¦ButtonNªIdentifierÍ-»Í-Ê¯createWithLabelÂÂ‘XµConditionalExpressionÍ-ËÍ. [°MemberExpressionÍ-ËÍ-ÚW®ThisExpressionÍ-ËÍ-ÏNªIdentifierÍ-ĞÍ-ÚªisDecodingÂÂT§LiteralÍ-İÍ-è«Decodingâ€¦­'Decodingâ€¦'T§LiteralÍ-ëÍ. ³Pick Video & Decodeµ'Pick Video & Decode'ÂU³ExpressionStatementÍ.>Í.SV®CallExpressionÍ.>Í.R[°MemberExpressionÍ.>Í.JNªIdentifierÍ.>Í.D¦ButtonNªIdentifierÍ.EÍ.J¥widthÂÂ‘T§LiteralÍ.KÍ.Q¤100%¦'100%'ÂU³ExpressionStatementÍ.Í.°V®CallExpressionÍ.Í.¯[°MemberExpressionÍ.Í.NªIdentifierÍ.Í.•¦ButtonNªIdentifierÍ.–Í.§enabledÂÂ‘S¯UnaryExpressionÍ.Í.®¡!Ã[°MemberExpressionÍ.ŸÍ.®W®ThisExpressionÍ.ŸÍ.£NªIdentifierÍ.¤Í.®ªisDecodingÂÂÂU³ExpressionStatementÍ.ìÍ/V®CallExpressionÍ.ìÍ/[°MemberExpressionÍ.ìÍ.ıNªIdentifierÍ.ìÍ.ò¦ButtonNªIdentifierÍ.óÍ.ıªfontWeightÂÂ‘T§LiteralÍ.şÍ/Íô£500ÂU³ExpressionStatementÍ/?Í/SV®CallExpressionÍ/?Í/R[°MemberExpressionÍ/?Í/NNªIdentifierÍ/?Í/E¦ButtonNªIdentifierÍ/FÍ/N¨fontSizeÂÂ‘T§LiteralÍ/OÍ/Q¢16ÂU³ExpressionStatementÍ/Í0òV®CallExpressionÍ/Í0ñ[°MemberExpressionÍ/Í/NªIdentifierÍ/Í/•¦ButtonNªIdentifierÍ/–Í/§onClickÂÂ‘Q·ArrowFunctionExpressionÍ/Í0ğÀÂÂÃO®BlockStatementÍ/ªÍ0ğ’_³VariableDeclarationÍ/ÅÍ/é‘`²VariableDeclaratorÍ/ËÍ/èNªIdentifierÍ/ËÍ/Ï¤path]¯AwaitExpressionÍ/ÒÍ/èV®CallExpressionÍ/ØÍ/è[°MemberExpressionÍ/ØÍ/æW®ThisExpressionÍ/ØÍ/ÜNªIdentifierÍ/İÍ/æ©pickVideoÂÂÂ¥constX«IfStatementÍ0Í0ÙNªIdentifierÍ0Í0¤pathO®BlockStatementÍ0Í0^‘U³ExpressionStatementÍ0,Í0CV®CallExpressionÍ0,Í0B[°MemberExpressionÍ0,Í0<W®ThisExpressionÍ0,Í00NªIdentifierÍ01Í0<«startDecodeÂÂ‘NªIdentifierÍ0=Í0A¤pathÂO®BlockStatementÍ0}Í0Ù‘U³ExpressionStatementÍ0œÍ0¾Z´AssignmentExpressionÍ0œÍ0½¡=[°MemberExpressionÍ0œÍ0§W®ThisExpressionÍ0œÍ0 NªIdentifierÍ0¡Í0§¦statusÂÂT§LiteralÍ0ªÍ0½±No video selected³'No video selected'ÂNªIdentifierÍ1Í1¦ButtonÂU³ExpressionStatementÍ1CÍ1PV®CallExpressionÍ1CÍ1O[°MemberExpressionÍ1CÍ1MNªIdentifierÍ1CÍ1I¦ButtonNªIdentifierÍ1JÍ1M£popÂÂÂU³ExpressionStatementÍ1bÍ1oV®CallExpressionÍ1bÍ1n[°MemberExpressionÍ1bÍ1lNªIdentifierÍ1bÍ1h¦ColumnNªIdentifierÍ1iÍ1l£popÂÂÂa°ObjectExpressionÍ1€Í1Î’b¨PropertyÍ1‚Í1•ÂÂÂNªIdentifierÍ1‚Í1ŒªmoduleNameT§LiteralÍ1Í1•¥entry§"entry"¤initb¨PropertyÍ1—Í1ÌÂÂÂNªIdentifierÍ1—Í1Ÿ¨pagePathT§LiteralÍ1¡Í1ÌÙ)entry/src/main/ets/pages/VideoDecoderPageÙ+"entry/src/main/ets/pages/VideoDecoderPage"¤initÂU³ExpressionStatementÍ1ŞÍ2V®CallExpressionÍ1ŞÍ2[°MemberExpressionÍ1ŞÍ1òNªIdentifierÍ1ŞÍ1ì®NavDestinationNªIdentifierÍ1íÍ1ò¥titleÂÂ‘T§LiteralÍ1óÍ2»Video Decoder (Buffer Mode)½'Video Decoder (Buffer Mode)'ÂU³ExpressionStatementÍ2 Í2­V®CallExpressionÍ2 Í2¬[°MemberExpressionÍ2 Í2>NªIdentifierÍ2 Í2.®NavDestinationNªIdentifierÍ2/Í2>¯backgroundColorÂÂ‘a°ObjectExpressionÍ2?Í2«•b¨PropertyÍ2AÍ2OÂÂÂT§LiteralÍ2AÍ2E¢id¤"id"T§LiteralÍ2GÍ2OÎ  ¨16777237¤initb¨PropertyÍ2QÍ2^ÂÂÂT§LiteralÍ2QÍ2W¤type¦"type"T§LiteralÍ2YÍ2^Í'¥10001¤initb¨PropertyÍ2`Í2jÂÂÂNªIdentifierÍ2`Í2f¦paramsÔrg”¤type¥start£end¨elements¯ArrayExpressionÍ2hÍ2j¤initb¨PropertyÍ2lÍ2’ÂÂÂT§LiteralÍ2lÍ2xªbundleName¬"bundleName"T§LiteralÍ2zÍ2’¶com.example.nativecase¸"com.example.nativecase"¤initb¨PropertyÍ2”Í2©ÂÂÂT§LiteralÍ2”Í2 ªmoduleName¬"moduleName"T§LiteralÍ2¢Í2©¥entry§"entry"¤initÂNªIdentifierÍ2ºÍ2È®NavDestinationÂU³ExpressionStatementÍ2ÔÍ2éV®CallExpressionÍ2ÔÍ2è[°MemberExpressionÍ2ÔÍ2æNªIdentifierÍ2ÔÍ2â®NavDestinationNªIdentifierÍ2ãÍ2æ£popÂÂÂP°MethodDefinitionÍ2öÍ3.ÂÂNªIdentifierÍ2öÍ2ş¨rerender¦methodQ²FunctionExpressionÍ2şÍ3.ÀÂÂÂO®BlockStatementÍ3Í3.‘U³ExpressionStatementÍ3Í3'V®CallExpressionÍ3Í3&[°MemberExpressionÍ3Í3$W®ThisExpressionÍ3Í3NªIdentifierÍ3Í3$³updateDirtyElementsÂÂÂP°MethodDefinitionÍ34Í3vÃÂNªIdentifierÍ3;Í3G¬getEntryName¦methodQ²FunctionExpressionÍ3GÍ3vÀÂÂÂO®BlockStatementÍ3JÍ3v‘]¯ReturnStatementÍ3UÍ3oT§LiteralÍ3\Í3n°VideoDecoderPage²"VideoDecoderPage"À”Ôrh•¤type¥start£endªspecifiers¦source±ImportDeclarationÍîÍ‘Ôri”¤type¥start£end¥local¶ImportDefaultSpecifierÍõÍıNªIdentifierÍõÍı¨libentryT§LiteralÍÍ«libentry.so­'libentry.so'h±ImportDeclarationÍÍP‘i¶ImportDefaultSpecifierÍÍ+NªIdentifierÍÍ+±photoAccessHelperT§LiteralÍ1ÍO¼@ohos.file.photoAccessHelper¾"@ohos.file.photoAccessHelper"h±ImportDeclarationÍRÍr‘i¶ImportDefaultSpecifierÍYÍ^NªIdentifierÍYÍ^¥hilogT§LiteralÍdÍq«@ohos.hilog­"@ohos.hilog"h±ImportDeclarationÍtÍŸ‘i¶ImportDefaultSpecifierÍ{Í€NªIdentifierÍ{Í€¥imageT§LiteralÍ†Í¶@ohos.multimedia.image¸"@ohos.multimedia.image"

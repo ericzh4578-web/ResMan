@@ -1,8 +1,10 @@
 # ninja log v6
 14	1612	7976827602415386	CMakeFiles/entry.dir/SyncCallback/SyncCallback.cpp.o	e8660b0f0f2a0492
 29	3016	7976827602568839	CMakeFiles/entry.dir/AsyncPromise/AsyncPromise.cpp.o	d5b4736751053ddb
-22	3143	7976827602488844	CMakeFiles/entry.dir/AsyncCallback/AsyncCallback.cpp.o	33ce1a905f61d0b9
-6	3351	7976827602332571	CMakeFiles/entry.dir/napi_init.cpp.o	229c99a000effd3b
 43	3373	7976827602728868	CMakeFiles/entry.dir/ThreadSafeCase/ThreadSafeCase.cpp.o	c061e2608a46e8ed
+22	3143	7976827602488844	CMakeFiles/entry.dir/AsyncCallback/AsyncCallback.cpp.o	33ce1a905f61d0b9
+22	2037	7977050774199818	CMakeFiles/entry.dir/napi_init.cpp.o	229c99a000effd3b
 63	3418	7976827602913965	CMakeFiles/entry.dir/LibUvCase/LibUvCase.cpp.o	c98bf11dc0ba602d
-3418	3866	7976827636455939	C:/Users/20732/Desktop/NativeCase/entry/build/default/intermediates/cmake/default/obj/arm64-v8a/libentry.so	8f82c43849c1a9a8
+1670	2153	7977044497747784	C:/Users/20732/Desktop/NativeCase/entry/build/default/intermediates/cmake/default/obj/arm64-v8a/libentry.so	8f82c43849c1a9a8
+22	1544	7977056168715038	CMakeFiles/entry.dir/VideoDecoder/VideoDecoder.cpp.o	c58b63110d012bc4
+50	822	7977064981465246	C:/Users/20732/Desktop/NativeCase/entry/build/default/intermediates/cmake/default/obj/arm64-v8a/libentry.so	c8aa955e97cfb8b0

@@ -227,8 +227,8 @@ CMAKE_SYSTEM_NAME:UNINITIALIZED=OHOS
 //Path to a program.
 CMAKE_TAPI:FILEPATH=CMAKE_TAPI-NOTFOUND
 
-//The CMake toolchain file
-CMAKE_TOOLCHAIN_FILE:FILEPATH=D:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/build/cmake/hmos.toolchain.cmake
+//No help, variable specified on the command line.
+CMAKE_TOOLCHAIN_FILE:UNINITIALIZED=D:\Program Files\Huawei\DevEco Studio\sdk\default\hms\native\build\cmake\hmos.toolchain.cmake
 
 //If this value is on, makefiles will be generated without the
 // .SILENT directive, and all commands will be echoed to the console
@@ -260,8 +260,20 @@ PACKAGE_FIND_FILE:UNINITIALIZED=C:\Users\20732\Desktop\NativeCase\entry\.cxx\def
 //FROCE
 UNIX:BOOL=TRUE
 
+//Path to a library.
+avcodec-lib:FILEPATH=avcodec-lib-NOTFOUND
+
+//Path to a library.
+avdemuxer-lib:FILEPATH=avdemuxer-lib-NOTFOUND
+
+//Path to a library.
+avformat-lib:FILEPATH=avformat-lib-NOTFOUND
+
 //Dependencies for the target
-entry_LIB_DEPENDS:STATIC=general;libace_napi.z.so;general;librawfile.z.so;general;libuv.so;
+entry_LIB_DEPENDS:STATIC=general;libace_napi.z.so;general;librawfile.z.so;general;libuv.so;general;libace_napi.z.so;general;libGLESv3.so;general;libace_ndk.z.so;general;libuv.so;general;libhilog_ndk.z.so;general;libnative_media_codecbase.so;general;libnative_media_core.so;general;libnative_media_vdec.so;general;libnative_window.so;general;libnative_media_venc.so;general;libnative_media_acodec.so;general;libnative_media_avdemuxer.so;general;libnative_media_avsource.so;general;libnative_media_avmuxer.so;general;libohaudio.so;
+
+//Path to a library.
+media-codecbase-lib:FILEPATH=media-codecbase-lib-NOTFOUND
 
 
 ########################
