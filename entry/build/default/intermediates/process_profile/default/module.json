@@ -1,13 +1,13 @@
 {
 	"app": {
-		"bundleName": "com.example.nativecase",
+		"bundleName": "com.samples.nativecase",
 		"vendor": "example",
 		"versionCode": 1000000,
 		"versionName": "1.0.0",
 		"icon": "$media:app_icon",
 		"label": "$string:app_name",
-		"apiReleaseType": "Beta1",
-		"compileSdkVersion": "6.0.2.129",
+		"apiReleaseType": "Release",
+		"compileSdkVersion": "6.0.2.130",
 		"targetAPIVersion": 60002022,
 		"minAPIVersion": 50005017,
 		"compileSdkType": "HarmonyOS",

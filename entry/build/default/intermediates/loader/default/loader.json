@@ -1,10 +1,10 @@
 {
   "modulePathMap": {
-    "entry": "C:\\Users\\20732\\Desktop\\NativeCase\\entry"
+    "entry": "C:\\Users\\dell\\Desktop\\NativeCase\\entry"
   },
   "compileMode": "esmodule",
-  "projectRootPath": "C:\\Users\\20732\\Desktop\\NativeCase",
-  "nodeModulesPath": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out\\default\\node_modules",
+  "projectRootPath": "C:\\Users\\dell\\Desktop\\NativeCase",
+  "nodeModulesPath": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out\\default\\node_modules",
   "byteCodeHarInfo": {},
   "declarationEntry": [],
   "moduleName": "entry",
@@ -18,9 +18,9 @@
   "hspResourcesMap": {},
   "updateVersionInfo": {},
   "customizedHar": false,
-  "anBuildOutPut": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out\\default\\an\\arm64-v8a",
+  "anBuildOutPut": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out\\default\\an\\arm64-v8a",
   "anBuildMode": "type",
   "patchConfig": {
-    "changedFileList": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\patch\\default\\changedFileList.json"
+    "changedFileList": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\patch\\default\\changedFileList.json"
   }
 }

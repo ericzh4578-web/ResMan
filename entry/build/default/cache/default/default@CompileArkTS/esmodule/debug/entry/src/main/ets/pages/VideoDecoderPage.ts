@@ -11,9 +11,9 @@ interface VideoDecoderPage_Params {
 }
 import libentry from "@normalized:Y&&&libentry.so&";
 import photoAccessHelper from "@ohos:file.photoAccessHelper";
-import type common from "@ohos:app.ability.common";
 import hilog from "@ohos:hilog";
 import image from "@ohos:multimedia.image";
+import fileIo from "@ohos:file.fs";
 const TAG = 'VideoDecoderPage';
 export class VideoDecoderPage extends ViewPU {
     constructor(parent, params, __localStorage, elmtId = -1, paramsLambda = undefined, extraInfo) {
@@ -117,15 +117,12 @@ export class VideoDecoderPage extends ViewPU {
     // ── Pick video from device gallery ────────────────────────────────────
     private async pickVideo(): Promise<string | null> {
         try {
-            const ctx = getContext(this) as common.UIAbilityContext;
             const picker = new photoAccessHelper.PhotoViewPicker();
             const result = await picker.select({
                 MIMEType: photoAccessHelper.PhotoViewMIMETypes.VIDEO_TYPE,
                 maxSelectNumber: 1,
             });
             if (result.photoUris && result.photoUris.length > 0) {
-                // Convert content URI to a real file path accessible by native code.
-                // On HarmonyOS the URI is already a file:// or /data/... path for local media.
                 const uri = result.photoUris[0];
                 hilog.info(0x0000, TAG, 'Selected video URI: %{public}s', uri);
                 return uri;
@@ -137,26 +134,45 @@ export class VideoDecoderPage extends ViewPU {
         return null;
     }
     // ── Start decoding ─────────────────────────────────────────────────────
-    private startDecode(filePath: string): void {
+    private async startDecode(uri: string): Promise<void> {
         this.frameCount = 0;
         this.isDecoding = true;
         this.status = 'Decoding…';
-        libentry.decodeVideoFrames(filePath, (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => {
-            if (isEos === 1 || frame === null) {
-                this.status = `Done — ${this.frameCount} frames decoded`;
-                this.isDecoding = false;
-                hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
-                return;
+        let file: fileIo.File | null = null;
+        try {
+            // Open the URI as a file descriptor so Native can use OH_AVSource_CreateWithFD
+            file = await fileIo.open(uri, fileIo.OpenMode.READ_ONLY);
+            const stat = await fileIo.stat(file.fd);
+            const fileSize = stat.size;
+            libentry.decodeVideoFrames(file.fd, fileSize, (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => {
+                if (isEos === 1 || frame === null) {
+                    this.status = `Done — ${this.frameCount} frames decoded`;
+                    this.isDecoding = false;
+                    // Close the fd after decoding is complete
+                    if (file !== null) {
+                        fileIo.close(file.fd).catch((e: Error) => {
+                            hilog.warn(0x0000, TAG, 'close fd failed: %{public}s', e.message);
+                        });
+                        file = null;
+                    }
+                    hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
+                    return;
+                }
+                this.frameCount += 1;
+                this.frameWidth = width;
+                this.frameHeight = height;
+                this.renderFrame(frame, width, height);
+                hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d', this.frameCount, width, height, frame.byteLength);
+            }, getContext(this).filesDir);
+        }
+        catch (e) {
+            hilog.error(0x0000, TAG, 'startDecode error: %{public}s', JSON.stringify(e));
+            this.status = `Error: ${JSON.stringify(e)}`;
+            this.isDecoding = false;
+            if (file !== null) {
+                fileIo.close(file.fd).catch(() => { });
             }
-            this.frameCount += 1;
-            this.frameWidth = width;
-            this.frameHeight = height;
-            // ── Optional: render the latest frame ──────────────────────────
-            // Convert the RGBA ArrayBuffer to a PixelMap for display.
-            // This is done asynchronously to avoid blocking the callback.
-            this.renderFrame(frame, width, height);
-            hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d', this.frameCount, width, height, frame.byteLength);
-        });
+        }
     }
     // ── Render one RGBA frame into a PixelMap ──────────────────────────────
     private renderFrame(rgba: ArrayBuffer, width: number, height: number): void {
@@ -178,9 +194,13 @@ export class VideoDecoderPage extends ViewPU {
         this.observeComponentCreation2((elmtId, isInitialRender) => {
             NavDestination.create(() => {
                 this.observeComponentCreation2((elmtId, isInitialRender) => {
+                    Scroll.create();
+                    Scroll.scrollable(ScrollDirection.Vertical);
+                    Scroll.scrollBar(BarState.Auto);
+                }, Scroll);
+                this.observeComponentCreation2((elmtId, isInitialRender) => {
                     Column.create({ space: 16 });
                     Column.width('100%');
-                    Column.height('100%');
                     Column.padding({ left: 16, right: 16, top: 16, bottom: 16 });
                 }, Column);
                 this.observeComponentCreation2((elmtId, isInitialRender) => {
@@ -275,7 +295,7 @@ export class VideoDecoderPage extends ViewPU {
                     Button.onClick(async () => {
                         const path = await this.pickVideo();
                         if (path) {
-                            this.startDecode(path);
+                            await this.startDecode(path);
                         }
                         else {
                             this.status = 'No video selected';
@@ -285,9 +305,10 @@ export class VideoDecoderPage extends ViewPU {
                 // Action button
                 Button.pop();
                 Column.pop();
+                Scroll.pop();
             }, { moduleName: "entry", pagePath: "entry/src/main/ets/pages/VideoDecoderPage" });
             NavDestination.title('Video Decoder (Buffer Mode)');
-            NavDestination.backgroundColor({ "id": 16777237, "type": 10001, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+            NavDestination.backgroundColor({ "id": 16777238, "type": 10001, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
         }, NavDestination);
         NavDestination.pop();
     }
@@ -298,4 +319,4 @@ export class VideoDecoderPage extends ViewPU {
         return "VideoDecoderPage";
     }
 }
-registerNamedRoute(() => new VideoDecoderPage(undefined, {}), "", { bundleName: "com.example.nativecase", moduleName: "entry", pagePath: "pages/VideoDecoderPage", pageFullPath: "entry/src/main/ets/pages/VideoDecoderPage", integratedHsp: "false", moduleType: "followWithHap" });
+registerNamedRoute(() => new VideoDecoderPage(undefined, {}), "", { bundleName: "com.samples.nativecase", moduleName: "entry", pagePath: "pages/VideoDecoderPage", pageFullPath: "entry/src/main/ets/pages/VideoDecoderPage", integratedHsp: "false", moduleType: "followWithHap" });

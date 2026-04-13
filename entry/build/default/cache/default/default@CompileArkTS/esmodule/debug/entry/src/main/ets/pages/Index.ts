@@ -127,7 +127,7 @@ class Index extends ViewPU {
             Navigation.create(this.pageInfos, { moduleName: "entry", pagePath: "entry/src/main/ets/pages/Index", isUserCreateStack: true });
             Navigation.hideTitleBar(true);
             Navigation.mode(NavigationMode.Stack);
-            Navigation.backgroundColor({ "id": 16777237, "type": 10001, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+            Navigation.backgroundColor({ "id": 16777238, "type": 10001, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
             Navigation.navDestination({ builder: this.PageMap.bind(this) });
             Navigation.expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM]);
         }, Navigation);
@@ -139,7 +139,7 @@ class Index extends ViewPU {
             Column.padding({ left: 16, right: 16, bottom: 16 });
         }, Column);
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Text.create({ "id": 16777227, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+            Text.create({ "id": 16777228, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
             Text.width('100%');
             Text.height(56);
             Text.fontSize(30);
@@ -153,7 +153,7 @@ class Index extends ViewPU {
         }, Blank);
         Blank.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Button.createWithLabel({ "id": 16777234, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+            Button.createWithLabel({ "id": 16777235, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
             Button.width('100%');
             Button.fontWeight(500);
             Button.fontSize(16);
@@ -164,7 +164,7 @@ class Index extends ViewPU {
         }, Button);
         Button.pop();
         this.observeComponentCreation2((elmtId, isInitialRender) => {
-            Button.createWithLabel({ "id": 16777229, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+            Button.createWithLabel({ "id": 16777230, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
             Button.width('100%');
             Button.fontWeight(500);
             Button.fontSize(16);
@@ -195,4 +195,4 @@ class Index extends ViewPU {
         return "Index";
     }
 }
-registerNamedRoute(() => new Index(undefined, {}), "", { bundleName: "com.example.nativecase", moduleName: "entry", pagePath: "pages/Index", pageFullPath: "entry/src/main/ets/pages/Index", integratedHsp: "false", moduleType: "followWithHap" });
+registerNamedRoute(() => new Index(undefined, {}), "", { bundleName: "com.samples.nativecase", moduleName: "entry", pagePath: "pages/Index", pageFullPath: "entry/src/main/ets/pages/Index", integratedHsp: "false", moduleType: "followWithHap" });

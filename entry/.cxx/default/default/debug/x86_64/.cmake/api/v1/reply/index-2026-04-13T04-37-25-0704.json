@@ -8,10 +8,10 @@
 		},
 		"paths" : 
 		{
-			"cmake" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/bin/cmake.exe",
-			"cpack" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/bin/cpack.exe",
-			"ctest" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/bin/ctest.exe",
-			"root" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/share/cmake-3.28"
+			"cmake" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/bin/cmake.exe",
+			"cpack" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/bin/cpack.exe",
+			"ctest" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/bin/ctest.exe",
+			"root" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/share/cmake-3.28"
 		},
 		"version" : 
 		{
@@ -26,7 +26,7 @@
 	"objects" : 
 	[
 		{
-			"jsonFile" : "codemodel-v2-cbfb8cc72ea241da9423.json",
+			"jsonFile" : "codemodel-v2-5a09baf149ab9e36188d.json",
 			"kind" : "codemodel",
 			"version" : 
 			{
@@ -35,7 +35,7 @@
 			}
 		},
 		{
-			"jsonFile" : "cache-v2-43a8137a2c67f1e9c51b.json",
+			"jsonFile" : "cache-v2-caaa8da6d3305077ea28.json",
 			"kind" : "cache",
 			"version" : 
 			{
@@ -44,7 +44,7 @@
 			}
 		},
 		{
-			"jsonFile" : "cmakeFiles-v1-12561a59fd5fffb94f66.json",
+			"jsonFile" : "cmakeFiles-v1-20e7a8dc3f63b4b20215.json",
 			"kind" : "cmakeFiles",
 			"version" : 
 			{
@@ -57,7 +57,7 @@
 	{
 		"cache-v2" : 
 		{
-			"jsonFile" : "cache-v2-43a8137a2c67f1e9c51b.json",
+			"jsonFile" : "cache-v2-caaa8da6d3305077ea28.json",
 			"kind" : "cache",
 			"version" : 
 			{
@@ -67,7 +67,7 @@
 		},
 		"cmakeFiles-v1" : 
 		{
-			"jsonFile" : "cmakeFiles-v1-12561a59fd5fffb94f66.json",
+			"jsonFile" : "cmakeFiles-v1-20e7a8dc3f63b4b20215.json",
 			"kind" : "cmakeFiles",
 			"version" : 
 			{
@@ -77,7 +77,7 @@
 		},
 		"codemodel-v2" : 
 		{
-			"jsonFile" : "codemodel-v2-cbfb8cc72ea241da9423.json",
+			"jsonFile" : "codemodel-v2-5a09baf149ab9e36188d.json",
 			"kind" : "codemodel",
 			"version" : 
 			{

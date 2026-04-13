@@ -39,7 +39,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "entry::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-entry-Debug-7d45c220d2ee6a0ada5f.json",
+					"jsonFile" : "target-entry-Debug-3b957a649b983657617d.json",
 					"name" : "entry",
 					"projectIndex" : 0
 				}
@@ -49,8 +49,8 @@
 	"kind" : "codemodel",
 	"paths" : 
 	{
-		"build" : "C:/Users/20732/Desktop/NativeCase/entry/.cxx/default/default/debug/arm64-v8a",
-		"source" : "C:/Users/20732/Desktop/NativeCase/entry/src/main/cpp"
+		"build" : "C:/Users/dell/Desktop/NativeCase/entry/.cxx/default/default/debug/arm64-v8a",
+		"source" : "C:/Users/dell/Desktop/NativeCase/entry/src/main/cpp"
 	},
 	"version" : 
 	{

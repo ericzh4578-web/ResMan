@@ -1,13 +1,13 @@
 {
 	"app":	{
-		"bundleName":	"com.example.nativecase",
+		"bundleName":	"com.samples.nativecase",
 		"vendor":	"example",
 		"versionCode":	1000000,
 		"versionName":	"1.0.0",
 		"icon":	"$media:app_icon",
 		"label":	"$string:app_name",
-		"apiReleaseType":	"Beta1",
-		"compileSdkVersion":	"6.0.2.129",
+		"apiReleaseType":	"Release",
+		"compileSdkVersion":	"6.0.2.130",
 		"targetAPIVersion":	60002022,
 		"minAPIVersion":	50005017,
 		"compileSdkType":	"HarmonyOS",
@@ -43,10 +43,10 @@
 						"actions":	["action.system.home"]
 					}],
 				"descriptionId":	16777218,
-				"iconId":	16777241,
+				"iconId":	16777242,
 				"labelId":	16777219,
-				"startWindowIconId":	16777242,
-				"startWindowBackgroundId":	16777238
+				"startWindowIconId":	16777243,
+				"startWindowBackgroundId":	16777239
 			}],
 		"extensionAbilities":	[{
 				"name":	"EntryBackupAbility",
@@ -56,7 +56,7 @@
 				"metadata":	[{
 						"name":	"ohos.extension.backup",
 						"resource":	"$profile:backup_config",
-						"resourceId":	16777243
+						"resourceId":	16777244
 					}]
 			}],
 		"requestPermissions":	[],

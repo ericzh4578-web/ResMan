@@ -41,83 +41,83 @@
 			"id":	"0x01000009"
 		}, {
 			"type":	"string",
-			"name":	"read_text_desc",
+			"name":	"permission_read_media_reason",
 			"id":	"0x0100000A"
 		}, {
 			"type":	"string",
-			"name":	"sample_title",
+			"name":	"read_text_desc",
 			"id":	"0x0100000B"
 		}, {
 			"type":	"string",
-			"name":	"sync_callback_button",
+			"name":	"sample_title",
 			"id":	"0x0100000C"
 		}, {
 			"type":	"string",
-			"name":	"thread_com_button",
+			"name":	"sync_callback_button",
 			"id":	"0x0100000D"
 		}, {
 			"type":	"string",
-			"name":	"thread_com_title",
+			"name":	"thread_com_button",
 			"id":	"0x0100000E"
 		}, {
 			"type":	"string",
-			"name":	"thread_com_title_desc",
+			"name":	"thread_com_title",
 			"id":	"0x0100000F"
 		}, {
 			"type":	"string",
-			"name":	"thread_com_toast",
+			"name":	"thread_com_title_desc",
 			"id":	"0x01000010"
 		}, {
 			"type":	"string",
-			"name":	"thread_safe_func_button",
+			"name":	"thread_com_toast",
 			"id":	"0x01000011"
 		}, {
 			"type":	"string",
-			"name":	"work_button",
+			"name":	"thread_safe_func_button",
 			"id":	"0x01000012"
 		}, {
 			"type":	"string",
-			"name":	"work_title",
+			"name":	"work_button",
 			"id":	"0x01000013"
 		}, {
 			"type":	"string",
-			"name":	"work_title_desc",
+			"name":	"work_title",
 			"id":	"0x01000014"
 		}, {
-			"type":	"color",
-			"name":	"background_color",
+			"type":	"string",
+			"name":	"work_title_desc",
 			"id":	"0x01000015"
 		}, {
 			"type":	"color",
-			"name":	"start_window_background",
+			"name":	"background_color",
 			"id":	"0x01000016"
 		}, {
-			"type":	"media",
-			"name":	"background",
+			"type":	"color",
+			"name":	"start_window_background",
 			"id":	"0x01000017"
 		}, {
 			"type":	"media",
-			"name":	"foreground",
+			"name":	"background",
 			"id":	"0x01000018"
 		}, {
 			"type":	"media",
-			"name":	"layered_image",
+			"name":	"foreground",
 			"id":	"0x01000019"
 		}, {
 			"type":	"media",
-			"name":	"startIcon",
+			"name":	"layered_image",
 			"id":	"0x0100001A"
 		}, {
-			"type":	"profile",
-			"name":	"backup_config",
+			"type":	"media",
+			"name":	"startIcon",
 			"id":	"0x0100001B"
 		}, {
 			"type":	"profile",
-			"name":	"main_pages",
+			"name":	"backup_config",
 			"id":	"0x0100001C"
 		}, {
-			"type":	"string",
-			"name":	"permission_read_media_reason",
+			"type":	"profile",
+			"name":	"main_pages",
 			"id":	"0x0100001D"
 		}]
 }

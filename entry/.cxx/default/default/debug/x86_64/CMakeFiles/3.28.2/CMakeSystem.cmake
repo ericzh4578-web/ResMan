@@ -3,7 +3,7 @@ set(CMAKE_HOST_SYSTEM_NAME "Windows")
 set(CMAKE_HOST_SYSTEM_VERSION "10.0.26200")
 set(CMAKE_HOST_SYSTEM_PROCESSOR "AMD64")
 
-include("D:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/build/cmake/hmos.toolchain.cmake")
+include("C:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/build/cmake/hmos.toolchain.cmake")
 
 set(CMAKE_SYSTEM "OHOS-1")
 set(CMAKE_SYSTEM_NAME "OHOS")

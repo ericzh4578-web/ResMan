@@ -1,1 +1,1 @@
-C:\Users\20732\Desktop\NativeCase\entry\.cxx\default\default\debug\x86_64
+C:\Users\dell\Desktop\NativeCase\entry\.cxx\default\default\debug\x86_64

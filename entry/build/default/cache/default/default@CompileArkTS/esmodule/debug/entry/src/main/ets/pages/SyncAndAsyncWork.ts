@@ -17,7 +17,7 @@ export class SyncAndAsyncWork extends ViewPU {
         }
         this.__pageInfos = this.initializeConsume('pageInfos', "pageInfos");
         this.resMgr = this.getUIContext().getHostContext()!.resourceManager;
-        this.__message = new ObservedPropertyObjectPU({ "id": 16777226, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" }, this, "message");
+        this.__message = new ObservedPropertyObjectPU({ "id": 16777227, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" }, this, "message");
         this.setInitiallyProvidedValue(params);
         this.finalizeConstruction();
     }
@@ -81,7 +81,7 @@ export class SyncAndAsyncWork extends ViewPU {
                 }, Blank);
                 Blank.pop();
                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                    Button.createWithLabel({ "id": 16777228, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+                    Button.createWithLabel({ "id": 16777229, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
                     Button.width('100%');
                     Button.fontWeight(500);
                     Button.fontSize(16);
@@ -93,7 +93,7 @@ export class SyncAndAsyncWork extends ViewPU {
                 }, Button);
                 Button.pop();
                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                    Button.createWithLabel({ "id": 16777220, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+                    Button.createWithLabel({ "id": 16777220, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
                     Button.width('100%');
                     Button.fontWeight(500);
                     Button.fontSize(16);
@@ -106,7 +106,7 @@ export class SyncAndAsyncWork extends ViewPU {
                 }, Button);
                 Button.pop();
                 this.observeComponentCreation2((elmtId, isInitialRender) => {
-                    Button.createWithLabel({ "id": 16777221, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+                    Button.createWithLabel({ "id": 16777221, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
                     Button.width('100%');
                     Button.fontWeight(500);
                     Button.fontSize(16);
@@ -120,9 +120,9 @@ export class SyncAndAsyncWork extends ViewPU {
                 Button.pop();
                 Column.pop();
             }, { moduleName: "entry", pagePath: "entry/src/main/ets/pages/SyncAndAsyncWork" });
-            NavDestination.backgroundColor({ "id": 16777237, "type": 10001, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+            NavDestination.backgroundColor({ "id": 16777238, "type": 10001, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
             NavDestination.title({ builder: () => {
-                    TitleComponent.call(this, { "id": 16777235, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" }, { "id": 16777236, "type": 10003, params: [], "bundleName": "com.example.nativecase", "moduleName": "entry" });
+                    TitleComponent.call(this, { "id": 16777236, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" }, { "id": 16777237, "type": 10003, params: [], "bundleName": "com.samples.nativecase", "moduleName": "entry" });
                 } });
         }, NavDestination);
         NavDestination.pop();

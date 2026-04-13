@@ -30,7 +30,8 @@ export const destroy: () => void;
 /**
  * Decode a local video file (H.264 or H.265) in Buffer mode.
  *
- * @param filePath  Absolute path to the video file on device storage.
+ * @param fd        File descriptor of the video file (opened via fileIo.open).
+ * @param fileSize  Total size of the file in bytes.
  * @param callback  Called once per decoded frame (and once at end-of-stream).
  *                  - frame:   RGBA8888 pixel data as ArrayBuffer, or null on EOS.
  *                  - width:   Frame width in pixels.
@@ -38,6 +39,8 @@ export const destroy: () => void;
  *                  - isEos:   1 when the stream has ended, 0 otherwise.
  */
 export const decodeVideoFrames: (
-  filePath: string,
-  callback: (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => void
+  fd: number,
+  fileSize: number,
+  callback: (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => void,
+  filesDir?: string
 ) => void;

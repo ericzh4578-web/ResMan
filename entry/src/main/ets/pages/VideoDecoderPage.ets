@@ -15,9 +15,9 @@
 
 import libentry from 'libentry.so';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
-import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { image } from '@kit.ImageKit';
+import { fileIo } from '@kit.CoreFileKit';
 
 const TAG = 'VideoDecoderPage';
 
@@ -37,15 +37,12 @@ export struct VideoDecoderPage {
   // ── Pick video from device gallery ────────────────────────────────────
   private async pickVideo(): Promise<string | null> {
     try {
-      const ctx = getContext(this) as common.UIAbilityContext;
       const picker = new photoAccessHelper.PhotoViewPicker();
       const result = await picker.select({
         MIMEType: photoAccessHelper.PhotoViewMIMETypes.VIDEO_TYPE,
         maxSelectNumber: 1,
       });
       if (result.photoUris && result.photoUris.length > 0) {
-        // Convert content URI to a real file path accessible by native code.
-        // On HarmonyOS the URI is already a file:// or /data/... path for local media.
         const uri = result.photoUris[0];
         hilog.info(0x0000, TAG, 'Selected video URI: %{public}s', uri);
         return uri;
@@ -57,34 +54,54 @@ export struct VideoDecoderPage {
   }
 
   // ── Start decoding ─────────────────────────────────────────────────────
-  private startDecode(filePath: string): void {
+  private async startDecode(uri: string): Promise<void> {
     this.frameCount = 0;
     this.isDecoding = true;
     this.status = 'Decoding…';
 
-    libentry.decodeVideoFrames(
-      filePath,
-      (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => {
-        if (isEos === 1 || frame === null) {
-          this.status = `Done — ${this.frameCount} frames decoded`;
-          this.isDecoding = false;
-          hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
-          return;
-        }
+    let file: fileIo.File | null = null;
+    try {
+      // Open the URI as a file descriptor so Native can use OH_AVSource_CreateWithFD
+      file = await fileIo.open(uri, fileIo.OpenMode.READ_ONLY);
+      const stat = await fileIo.stat(file.fd);
+      const fileSize = stat.size;
 
-        this.frameCount += 1;
-        this.frameWidth = width;
-        this.frameHeight = height;
+      libentry.decodeVideoFrames(
+        file.fd,
+        fileSize,
+        (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => {
+          if (isEos === 1 || frame === null) {
+            this.status = `Done — ${this.frameCount} frames decoded`;
+            this.isDecoding = false;
+            // Close the fd after decoding is complete
+            if (file !== null) {
+              fileIo.close(file.fd).catch((e: Error) => {
+                hilog.warn(0x0000, TAG, 'close fd failed: %{public}s', e.message);
+              });
+              file = null;
+            }
+            hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
+            return;
+          }
 
-        // ── Optional: render the latest frame ──────────────────────────
-        // Convert the RGBA ArrayBuffer to a PixelMap for display.
-        // This is done asynchronously to avoid blocking the callback.
-        this.renderFrame(frame, width, height);
+          this.frameCount += 1;
+          this.frameWidth = width;
+          this.frameHeight = height;
+          this.renderFrame(frame, width, height);
 
-        hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d',
-          this.frameCount, width, height, frame.byteLength);
+          hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d',
+            this.frameCount, width, height, frame.byteLength);
+        },
+        getContext(this).filesDir
+      );
+    } catch (e) {
+      hilog.error(0x0000, TAG, 'startDecode error: %{public}s', JSON.stringify(e));
+      this.status = `Error: ${JSON.stringify(e)}`;
+      this.isDecoding = false;
+      if (file !== null) {
+        fileIo.close(file.fd).catch(() => {});
       }
-    );
+    }
   }
 
   // ── Render one RGBA frame into a PixelMap ──────────────────────────────
@@ -106,63 +123,66 @@ export struct VideoDecoderPage {
   // ── UI ─────────────────────────────────────────────────────────────────
   build() {
     NavDestination() {
-      Column({ space: 16 }) {
+      Scroll() {
+        Column({ space: 16 }) {
 
-        // Preview area
-        if (this.latestFramePixelMap !== undefined) {
-          Image(this.latestFramePixelMap)
+          // Preview area
+          if (this.latestFramePixelMap !== undefined) {
+            Image(this.latestFramePixelMap)
+              .width('100%')
+              .aspectRatio(this.frameWidth > 0 ? this.frameWidth / this.frameHeight : 1.78)
+              .objectFit(ImageFit.Contain)
+              .borderRadius(8)
+          } else {
+            Row() {
+              Text('No frame yet')
+                .fontSize(14)
+                .fontColor('#888888')
+            }
             .width('100%')
-            .aspectRatio(this.frameWidth > 0 ? this.frameWidth / this.frameHeight : 1.78)
-            .objectFit(ImageFit.Contain)
+            .height(200)
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor('#1A000000')
             .borderRadius(8)
-        } else {
-          Row() {
-            Text('No frame yet')
+          }
+
+          // Stats
+          Column({ space: 4 }) {
+            Text(`Status: ${this.status}`)
               .fontSize(14)
-              .fontColor('#888888')
+              .fontColor(this.isDecoding ? '#007DFF' : '#333333')
+            Text(`Frames decoded: ${this.frameCount}`)
+              .fontSize(14)
+            if (this.frameWidth > 0) {
+              Text(`Resolution: ${this.frameWidth} × ${this.frameHeight}`)
+                .fontSize(14)
+            }
           }
           .width('100%')
-          .height(200)
-          .justifyContent(FlexAlign.Center)
-          .backgroundColor('#1A000000')
+          .padding(12)
+          .backgroundColor('#F5F5F5')
           .borderRadius(8)
-        }
 
-        // Stats
-        Column({ space: 4 }) {
-          Text(`Status: ${this.status}`)
-            .fontSize(14)
-            .fontColor(this.isDecoding ? '#007DFF' : '#333333')
-          Text(`Frames decoded: ${this.frameCount}`)
-            .fontSize(14)
-          if (this.frameWidth > 0) {
-            Text(`Resolution: ${this.frameWidth} × ${this.frameHeight}`)
-              .fontSize(14)
-          }
+          // Action button
+          Button(this.isDecoding ? 'Decoding…' : 'Pick Video & Decode')
+            .width('100%')
+            .enabled(!this.isDecoding)
+            .fontWeight(500)
+            .fontSize(16)
+            .onClick(async () => {
+              const path = await this.pickVideo();
+              if (path) {
+                await this.startDecode(path);
+              } else {
+                this.status = 'No video selected';
+              }
+            })
         }
         .width('100%')
-        .padding(12)
-        .backgroundColor('#F5F5F5')
-        .borderRadius(8)
-
-        // Action button
-        Button(this.isDecoding ? 'Decoding…' : 'Pick Video & Decode')
-          .width('100%')
-          .enabled(!this.isDecoding)
-          .fontWeight(500)
-          .fontSize(16)
-          .onClick(async () => {
-            const path = await this.pickVideo();
-            if (path) {
-              this.startDecode(path);
-            } else {
-              this.status = 'No video selected';
-            }
-          })
+        .padding({ left: 16, right: 16, top: 16, bottom: 16 })
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+      .scrollable(ScrollDirection.Vertical)
+      .scrollBar(BarState.Auto)
     }
     .title('Video Decoder (Buffer Mode)')
     .backgroundColor($r('app.color.background_color'))

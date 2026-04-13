@@ -1,4 +1,4 @@
-set(CMAKE_C_COMPILER "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/clang.exe")
+set(CMAKE_C_COMPILER "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/clang.exe")
 set(CMAKE_C_COMPILER_ARG1 "")
 set(CMAKE_C_COMPILER_ID "Clang")
 set(CMAKE_C_COMPILER_VERSION "15.0.4")
@@ -21,11 +21,11 @@ set(CMAKE_C_SIMULATE_VERSION "")
 
 
 
-set(CMAKE_AR "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ar.exe")
-set(CMAKE_C_COMPILER_AR "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ar.exe")
-set(CMAKE_RANLIB "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ranlib.exe")
-set(CMAKE_C_COMPILER_RANLIB "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ranlib.exe")
-set(CMAKE_LINKER "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/ld.lld.exe")
+set(CMAKE_AR "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ar.exe")
+set(CMAKE_C_COMPILER_AR "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ar.exe")
+set(CMAKE_RANLIB "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ranlib.exe")
+set(CMAKE_C_COMPILER_RANLIB "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/llvm-ranlib.exe")
+set(CMAKE_LINKER "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/bin/ld.lld.exe")
 set(CMAKE_MT "")
 set(CMAKE_TAPI "CMAKE_TAPI-NOTFOUND")
 set(CMAKE_COMPILER_IS_GNUCC )
@@ -39,7 +39,7 @@ set(CMAKE_C_COMPILER_ID_RUN 1)
 set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
 set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
 set(CMAKE_C_LINKER_PREFERENCE 10)
-set(CMAKE_C_LINKER_DEPFILE_SUPPORTED TRUE)
+set(CMAKE_C_LINKER_DEPFILE_SUPPORTED FALSE)
 
 # Save compiler ABI information.
 set(CMAKE_C_SIZEOF_DATA_PTR "8")
@@ -68,7 +68,7 @@ endif()
 
 
 
-set(CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/lib/clang/15.0.4/include;D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/include/aarch64-linux-ohos;D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/include")
+set(CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/lib/clang/15.0.4/include;C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/include/aarch64-linux-ohos;C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/include")
 set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "unwind;-l:libunwind.a;c;-l:libunwind.a")
-set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos;D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/lib;D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/lib/aarch64-linux-ohos;D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/lib/aarch64-linux-ohos")
+set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/lib/clang/15.0.4/lib/aarch64-linux-ohos;C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/lib;C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/llvm/lib/aarch64-linux-ohos;C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot/usr/lib/aarch64-linux-ohos")
 set(CMAKE_C_IMPLICIT_LINK_FRAMEWORK_DIRECTORIES "")

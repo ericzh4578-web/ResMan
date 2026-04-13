@@ -2,26 +2,26 @@
   "version": 1,
   "ohos-module-entry": {
     "SELECT_TARGET": "default",
-    "MODULE_BUILD_DIR": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build",
+    "MODULE_BUILD_DIR": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build",
     "TARGETS": {
       "default": {
-        "SOURCE_ROOT": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\src\\main",
+        "SOURCE_ROOT": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\src\\main",
         "RESOURCES_PATH": [
-          "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\src\\main\\resources"
+          "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\src\\main\\resources"
         ],
         "BUILD_PATH": {
-          "OUTPUT_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\outputs\\default",
-          "INTERMEDIA_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates",
-          "JS_ASSETS_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out\\default",
-          "JS_LITE_ASSETS_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out_lite\\default",
-          "RES_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\res\\default",
-          "RES_PROFILE_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\res\\default\\resources\\base\\profile",
-          "ETS_SUPER_VISUAL_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\cache\\default\\default@CompileArkTS\\esmodule",
-          "JS_SUPER_VISUAL_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\cache\\default\\default@CompileJS\\jsbundle",
-          "WORKER_LOADER": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader\\default\\loader.json",
-          "MANIFEST_JSON": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\manifest\\default",
-          "OUTPUT_METADATA_JSON": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\hap_metadata\\default\\output_metadata.json",
-          "SOURCE_MAP_DIR": "C:\\Users\\20732\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\source_map\\default"
+          "OUTPUT_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\outputs\\default",
+          "INTERMEDIA_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates",
+          "JS_ASSETS_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out\\default",
+          "JS_LITE_ASSETS_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader_out_lite\\default",
+          "RES_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\res\\default",
+          "RES_PROFILE_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\res\\default\\resources\\base\\profile",
+          "ETS_SUPER_VISUAL_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\cache\\default\\default@CompileArkTS\\esmodule",
+          "JS_SUPER_VISUAL_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\cache\\default\\default@CompileJS\\jsbundle",
+          "WORKER_LOADER": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\loader\\default\\loader.json",
+          "MANIFEST_JSON": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\manifest\\default",
+          "OUTPUT_METADATA_JSON": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\hap_metadata\\default\\output_metadata.json",
+          "SOURCE_MAP_DIR": "C:\\Users\\dell\\Desktop\\NativeCase\\entry\\build\\default\\intermediates\\source_map\\default"
         },
         "BUILD_OPTION": {
           "debuggable": true
@@ -96,17 +96,17 @@
   },
   "ohos-project": {
     "SELECT_PRODUCT_NAME": "default",
-    "MODULE_BUILD_DIR": "C:\\Users\\20732\\Desktop\\NativeCase\\build",
-    "BUNDLE_NAME": "com.example.nativecase",
+    "MODULE_BUILD_DIR": "C:\\Users\\dell\\Desktop\\NativeCase\\build",
+    "BUNDLE_NAME": "com.samples.nativecase",
     "VERSION_CODE": 1000000,
     "VERSION_NAME": "1.0.0",
     "BUILD_PATH": {
-      "OUTPUT_PATH": "C:\\Users\\20732\\Desktop\\NativeCase\\build\\outputs\\default"
+      "OUTPUT_PATH": "C:\\Users\\dell\\Desktop\\NativeCase\\build\\outputs\\default"
     },
     "MODULES": [
       {
         "name": "entry",
-        "srcPath": "C:\\Users\\20732\\Desktop\\NativeCase\\entry",
+        "srcPath": "C:\\Users\\dell\\Desktop\\NativeCase\\entry",
         "targets": [
           {
             "name": "default",
@@ -115,7 +115,7 @@
             ]
           }
         ],
-        "belongProjectPath": "C:\\Users\\20732\\Desktop\\NativeCase"
+        "belongProjectPath": "C:\\Users\\dell\\Desktop\\NativeCase"
       }
     ],
     "PROFILE_OPT": {
@@ -125,13 +125,13 @@
             "name": "default",
             "type": "HarmonyOS",
             "material": {
-              "certpath": "C:\\Users\\20732\\.ohos\\config\\default_NativeCase_tUOsm4NFZygh6JRAkUqpde0Wmh65X71EEEIuYwNO0go=.cer",
+              "certpath": "C:\\Users\\dell\\.ohos\\config\\default_NativeCase_6vJJJoQMSkMO5M6wC0Xphf6QF1aTtgp2kM1QhwN6JEY=.cer",
               "keyAlias": "debugKey",
-              "keyPassword": "0000001BD906CF6E580B4794EC7CE0B787DD6606275F4E68E3B3911C56F9959B8B69D3D71EDDEB786BEC8B",
-              "profile": "C:\\Users\\20732\\.ohos\\config\\default_NativeCase_tUOsm4NFZygh6JRAkUqpde0Wmh65X71EEEIuYwNO0go=.p7b",
+              "keyPassword": "0000001B9F786C63D37F879A5EE3E3CE9DEF1059022DEC86B6796C996FD60BF60DCE8E90BD5F9EF11AD518",
+              "profile": "C:\\Users\\dell\\.ohos\\config\\default_NativeCase_6vJJJoQMSkMO5M6wC0Xphf6QF1aTtgp2kM1QhwN6JEY=.p7b",
               "signAlg": "SHA256withECDSA",
-              "storeFile": "C:\\Users\\20732\\.ohos\\config\\default_NativeCase_tUOsm4NFZygh6JRAkUqpde0Wmh65X71EEEIuYwNO0go=.p12",
-              "storePassword": "0000001BF1CCE0ACA93E43ADE6DC1632009FB669ACA3FCCE3A42137E92A78ED19745F5824290A917D87DD3"
+              "storeFile": "C:\\Users\\dell\\.ohos\\config\\default_NativeCase_6vJJJoQMSkMO5M6wC0Xphf6QF1aTtgp2kM1QhwN6JEY=.p12",
+              "storePassword": "0000001BDD7BA0C596790D86E3A3E437CBA5A558ECD9D9B5741158547425089409AAE66FC838D0AA394C00"
             }
           }
         ],
@@ -180,7 +180,7 @@
       "hvigor.keepDependency": true
     },
     "OVERALL_PROJECT_PATHS": [
-      "C:\\Users\\20732\\Desktop\\NativeCase"
+      "C:\\Users\\dell\\Desktop\\NativeCase"
     ],
     "BUILD_CACHE_DIR": ""
   }

@@ -21,12 +21,13 @@
 namespace VideoDecoder {
 
 /**
- * NAPI entry point: decodeVideoFrames(filePath: string, callback: (frame: ArrayBuffer, width: number, height: number,
- * isEos: boolean) => void): void
+ * NAPI entry point: decodeVideoFrames(fd: number, fileSize: number,
+ *                                     callback: (frame: ArrayBuffer, width: number, height: number,
+ *                                                isEos: number) => void): void
  *
- * Reads an H.264/H.265 video file from the given absolute path, decodes it in Buffer mode using
- * OH_VideoDecoder, converts each NV12 frame to RGBA8888, and delivers the result to the JS
- * callback as an ArrayBuffer on the main thread via a thread-safe function.
+ * Opens the video via a file descriptor (obtained from fileIo.open on the ArkTS side),
+ * decodes it in Buffer mode using OH_VideoDecoder, converts each NV12 frame to RGBA8888,
+ * and delivers the result to the JS callback on the main thread via a thread-safe function.
  */
 napi_value DecodeVideoFrames(napi_env env, napi_callback_info info);
 

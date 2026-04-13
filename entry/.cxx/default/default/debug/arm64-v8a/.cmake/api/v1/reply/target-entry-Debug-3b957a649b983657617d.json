@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "C:/Users/20732/Desktop/NativeCase/entry/build/default/intermediates/cmake/default/obj/arm64-v8a/libentry.so"
+			"path" : "C:/Users/dell/Desktop/NativeCase/entry/build/default/intermediates/cmake/default/obj/arm64-v8a/libentry.so"
 		}
 	],
 	"backtrace" : 1,
@@ -19,8 +19,8 @@
 		"files" : 
 		[
 			"CMakeLists.txt",
-			"D:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/build/cmake/hmos.toolchain.cmake",
-			"C:/Users/20732/Desktop/NativeCase/entry/.cxx/default/default/debug/arm64-v8a/CMakeFiles/3.28.2/CMakeSystem.cmake"
+			"C:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/build/cmake/hmos.toolchain.cmake",
+			"C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/build-tools/cmake/share/cmake-3.28/Modules/CMakeDetermineSystem.cmake"
 		],
 		"nodes" : 
 		[
@@ -52,7 +52,7 @@
 			{
 				"command" : 3,
 				"file" : 2,
-				"line" : 6,
+				"line" : 170,
 				"parent" : 4
 			},
 			{
@@ -92,15 +92,15 @@
 			[
 				{
 					"backtrace" : 7,
-					"path" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/sysroot/usr/include"
+					"path" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/hms/native/sysroot/usr/include"
 				},
 				{
 					"backtrace" : 8,
-					"path" : "C:/Users/20732/Desktop/NativeCase/entry/src/main/cpp"
+					"path" : "C:/Users/dell/Desktop/NativeCase/entry/src/main/cpp"
 				},
 				{
 					"backtrace" : 8,
-					"path" : "C:/Users/20732/Desktop/NativeCase/entry/src/main/cpp/include"
+					"path" : "C:/Users/dell/Desktop/NativeCase/entry/src/main/cpp/include"
 				}
 			],
 			"language" : "CXX",
@@ -116,7 +116,7 @@
 			],
 			"sysroot" : 
 			{
-				"path" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot"
+				"path" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot"
 			}
 		}
 	],
@@ -302,7 +302,7 @@
 		"language" : "CXX",
 		"sysroot" : 
 		{
-			"path" : "D:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot"
+			"path" : "C:/Program Files/Huawei/DevEco Studio/sdk/default/openharmony/native/sysroot"
 		}
 	},
 	"name" : "entry",
