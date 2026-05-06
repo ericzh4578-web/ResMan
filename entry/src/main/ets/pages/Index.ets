@@ -16,6 +16,7 @@
 import { SubMainThreadCom } from './SubMainThreadCom';
 import { SyncAndAsyncWork } from './SyncAndAsyncWork';
 import { VideoDecoderPage } from './VideoDecoderPage';
+import { VideoInferencePage } from './VideoInferencePage';
 
 @Entry
 @Component
@@ -30,6 +31,8 @@ struct Index {
       SubMainThreadCom();
     } else if (name === 'VideoDecoderPage') {
       VideoDecoderPage();
+    } else if (name === 'VideoInferencePage') {
+      VideoInferencePage();
     } else {
       Index();
     }
@@ -73,6 +76,15 @@ struct Index {
           .margin({ top: 12 })
           .onClick(() => {
             this.pageInfos.pushPath({ name: 'VideoDecoderPage' });
+          })
+
+        Button('Video Inference')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'VideoInferencePage' });
           })
       }
       .width('100%')

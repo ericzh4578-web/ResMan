@@ -1,0 +1,8 @@
+.hvigor/
+.idea/
+oh_modules/
+entry/.cxx/
+entry/build/
+
+# Ignore local model assets under rawfile
+entry/src/main/resources/rawfile/*.ms
