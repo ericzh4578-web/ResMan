@@ -18,6 +18,9 @@ import { SyncAndAsyncWork } from './SyncAndAsyncWork';
 import { VideoDecoderPage } from './VideoDecoderPage';
 import { VideoInferencePage } from './VideoInferencePage';
 import { ResourceMonitorPage } from './ResourceMonitorPage';
+import { ResourceSimulatorPage } from './ResourceSimulatorPage';
+import { ModelSelectorPage } from './ModelSelectorPage';
+import { TestDashboardPage } from './TestDashboardPage';
 
 @Entry
 @Component
@@ -36,6 +39,12 @@ struct Index {
       VideoInferencePage();
     } else if (name === 'ResourceMonitorPage') {
       ResourceMonitorPage();
+    } else if (name === 'ResourceSimulatorPage') {
+      ResourceSimulatorPage();
+    } else if (name === 'ModelSelectorPage') {
+      ModelSelectorPage();
+    } else if (name === 'TestDashboardPage') {
+      TestDashboardPage();
     } else {
       Index();
     }
@@ -53,6 +62,16 @@ struct Index {
           .margin({ top: 64 })
 
         Blank();
+
+        Button('Test Dashboard')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .backgroundColor('#007DFF')
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'TestDashboardPage' });
+          })
 
         Button($r('app.string.work_button'))
           .width('100%')
@@ -97,6 +116,24 @@ struct Index {
           .margin({ top: 12 })
           .onClick(() => {
             this.pageInfos.pushPath({ name: 'ResourceMonitorPage' });
+          })
+
+        Button('Resource Simulator')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'ResourceSimulatorPage' });
+          })
+
+        Button('Model Selector')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'ModelSelectorPage' });
           })
       }
       .width('100%')

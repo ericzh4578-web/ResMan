@@ -18,7 +18,8 @@ add_library(entry SHARED
     AsyncPromise/AsyncPromise.cpp
     ThreadSafeCase/ThreadSafeCase.cpp
     LibUvCase/LibUvCase.cpp
-    VideoDecoder/VideoDecoder.cpp)
+    VideoDecoder/VideoDecoder.cpp
+    ResourceSimulator/ResourceSimulator.cpp)
 
 target_link_libraries(entry PUBLIC
     libace_napi.z.so

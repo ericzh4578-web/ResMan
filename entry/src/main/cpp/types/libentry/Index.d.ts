@@ -28,6 +28,42 @@ export const libUvCaseFun: (work: object) => void;
 export const destroy: () => void;
 
 /**
+ * Resource Simulator — control CPU / Memory / I/O load on the device.
+ */
+
+/** Start CPU load at 0 (idle), 1 (25%), 2 (50%), 3 (75%), or 4 (100%). */
+export const startCpuLoad: (level: number) => void;
+
+/** Stop the active CPU load. */
+export const stopCpuLoad: () => void;
+
+/** Start memory load at 0 (10%), 1 (15%), 2 (20%), or 3 (25%) of physical RAM. */
+export const startMemoryLoad: (level: number) => void;
+
+/** Free the allocated memory load buffer. */
+export const stopMemoryLoad: () => void;
+
+/** Start I/O random read/write load.
+ *  level: 0 = weak, 1 = medium, 2 = strong.
+ *  filesDir: app sandbox directory for the temporary test file. */
+export const startIoLoad: (level: number, filesDir: string) => void;
+
+/** Stop the active I/O load and delete the test file. */
+export const stopIoLoad: () => void;
+
+export interface SimulatorStatus {
+  cpuActive: boolean;
+  cpuLevel: number;
+  memActive: boolean;
+  memLevel: number;
+  ioActive: boolean;
+  ioLevel: number;
+}
+
+/** Return the current simulator state. */
+export const getSimulatorStatus: () => SimulatorStatus;
+
+/**
  * Decode a local video file (H.264 or H.265) in Buffer mode.
  *
  * @param fd        File descriptor of the video file (opened via fileIo.open).

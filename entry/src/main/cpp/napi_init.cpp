@@ -20,6 +20,7 @@
 #include "./ThreadSafeCase/ThreadSafeCase.h"
 #include "./LibUvCase/LibUvCase.h"
 #include "./VideoDecoder/VideoDecoder.h"
+#include "./ResourceSimulator/ResourceSimulator.h"
 extern int g_value;
 
 static napi_value Destroy(napi_env env, napi_callback_info info) {
@@ -39,6 +40,15 @@ static napi_value Init(napi_env env, napi_value exports) {
         {"libUvCaseFun", nullptr, LibUvCase::LibUvCaseFun, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"destroy", nullptr, Destroy, nullptr, nullptr, nullptr, napi_default, nullptr},
         {"decodeVideoFrames", nullptr, VideoDecoder::DecodeVideoFrames, nullptr, nullptr, nullptr, napi_default,
+         nullptr},
+        {"startCpuLoad", nullptr, ResourceSimulator::StartCpuLoad, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"stopCpuLoad", nullptr, ResourceSimulator::StopCpuLoad, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"startMemoryLoad", nullptr, ResourceSimulator::StartMemoryLoad, nullptr, nullptr, nullptr, napi_default,
+         nullptr},
+        {"stopMemoryLoad", nullptr, ResourceSimulator::StopMemoryLoad, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"startIoLoad", nullptr, ResourceSimulator::StartIoLoad, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"stopIoLoad", nullptr, ResourceSimulator::StopIoLoad, nullptr, nullptr, nullptr, napi_default, nullptr},
+        {"getSimulatorStatus", nullptr, ResourceSimulator::GetSimulatorStatus, nullptr, nullptr, nullptr, napi_default,
          nullptr},
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);

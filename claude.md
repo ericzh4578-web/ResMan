@@ -1,5 +1,14 @@
 # NativeCase 项目开发指南
 
+
+## TODO
+1. ✅ 资源模拟模块 — 已完成 (ResourceSimulator C++ 模块 + ResourceSimulatorPage UI)
+   - CPU负载模拟：0%、25%、50%、75%、100%（通过后台线程占空比实现）
+   - 内存负载：占用 25%、50%、80% 物理内存（大块内存分配 + memset 提交物理页）
+   - I/O随机读写：弱、中、强 三档（不同 block size + sleep 间隔）
+2. ✅ 支持不同模型路径的选择 — 已完成 (独立 ModelSelectorPage 页面 + TestDashboardPage 集成)
+3. ✅ YOLO 推理压测 — 已完成 (TestDashboardPage: 自定义推理次数 + 批次推理 + 随机输入压测)
+
 ## 项目概述
 
 **NativeCase** 是一个 HarmonyOS 应用示例项目，展示了 ArkTS 与 Native C++ 层的交互开发。项目包含两个主要主题：
@@ -233,6 +242,121 @@ hvigorw build
 | `libuv.so` | 异步 I/O 库，事件驱动编程 |
 | `napi/native_api.h` | NAPI 核心头文件 |
 | `rawfile/raw_file_manager.h` | 资源管理 API |
+
+## TestDashboardPage 函数参考
+
+`entry/src/main/ets/pages/TestDashboardPage.ets` — 统一测试面板，整合资源监控、资源模拟、模型选择和YOLO推理压测。
+
+### 常量
+
+| 常量 | 值 | 说明 |
+|------|-----|------|
+| `POLL_INTERVAL_MS` | `1000` | 监控/模拟状态轮询间隔 (ms) |
+| `INFI_MODELS` | `['infi_coco_full_bsz1.ms']` | 可选 InFi 模型文件列表 |
+| `YOLO_MODELS` | `['yolov8n_bsz4.ms', 'yolov8s_bsz4.ms', 'yolov8m_bsz4.ms', 'yolov8l_bsz4.ms', 'yolov8x_bsz4.ms']` | 可选 YOLO 模型文件列表 |
+| `CPU_LEVELS` | `['0%', '25%', '50%', '75%', '100%']` | CPU 负载档位标签 |
+| `MEM_LEVELS` | `['10%', '15%', '20%', '25%']` | 内存负载档位标签 |
+| `IO_LEVELS` | `['Weak', 'Medium', 'Strong']` | I/O 负载档位标签 |
+
+### @State 响应式变量
+
+**Monitor 组:**
+| 变量 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `cpuUsage` | `number` | `0` | 本进程 CPU 占用百分比 |
+| `systemCpuUsage` | `number` | `0` | 系统 CPU 占用百分比 |
+| `pssMb` | `string` | `'-'` | 进程 PSS 内存 (MB) |
+| `sysMemInfo` | `string` | `'-'` | 系统内存概况 (Total/Free/Avail) |
+| `thermalLevel` | `number` | `0` | 设备热等级 |
+| `batterySOC` | `number` | `0` | 电池电量百分比 |
+| `batteryTemp` | `number` | `0` | 电池温度 (°C) |
+
+**Simulator 组:**
+| 变量 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `cpuLevel` | `number` | `0` | 当前 CPU 档位 (0-4) |
+| `cpuActive` | `boolean` | `false` | CPU 负载是否运行中 |
+| `memLevel` | `number` | `0` | 当前内存档位 (0-3) |
+| `memActive` | `boolean` | `false` | 内存负载是否激活 |
+| `ioLevel` | `number` | `0` | 当前 I/O 档位 (0-2) |
+| `ioActive` | `boolean` | `false` | I/O 负载是否运行中 |
+
+**Model 组:**
+| 变量 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `selectedInfi` | `string` | `INFI_MODELS[0]` | 当前选中的 InFi 模型文件名 |
+| `selectedYolo` | `string` | `YOLO_MODELS[3]` | 当前选中的 YOLO 模型文件名 (默认 yolov8l) |
+| `modelStatus` | `string` | `'Idle'` | 模型加载状态 (`Idle`/`Loading…`/`OK`/`Failed`) |
+| `modelResult` | `string` | `''`` | 模型加载结果文本 |
+
+**Inference 组:**
+| 变量 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `inferCount` | `number` | `10` | 推理迭代次数 |
+| `inferBatchSize` | `number` | `4` | 批次大小 (从模型文件名提取) |
+| `inferRunning` | `boolean` | `false` | 推理压测是否进行中 |
+| `inferStatus` | `string` | `'Idle'` | 推理状态 |
+| `inferResult` | `string` | `''` | 推理压测结果 |
+
+### 生命周期
+
+| 函数 | 触发时机 | 行为 |
+|------|---------|------|
+| `aboutToAppear()` | 页面挂载 | 启动 1s 定时器轮询 `refreshMonitor()` + `refreshSimulator()` |
+| `aboutToDisappear()` | 页面卸载 | 清除定时器，调用 `stopAll()` 停止所有负载 |
+
+### Monitor 组函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `refreshMonitor()` | 无 | `void` | 读取 CPU/PSS/系统内存/热等级/电池 并更新 @State |
+
+### Simulator 组函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `refreshSimulator()` | 无 | `void` | 调用 `libentry.getSimulatorStatus()` 同步激活状态 |
+| `applyCpu(lvl)` | `lvl: number` (0-4) | `void` | 调用 `libentry.startCpuLoad(lvl)` 启动/调整 CPU 负载 |
+| `applyMem(lvl)` | `lvl: number` (0-3) | `void` | 调用 `libentry.startMemoryLoad(lvl)` 分配内存 |
+| `stopMem()` | 无 | `void` | 调用 `libentry.stopMemoryLoad()` 释放内存 |
+| `applyIo(lvl)` | `lvl: number` (0-2) | `void` | 调用 `libentry.startIoLoad(lvl, filesDir)` 启动 I/O 负载 |
+| `stopIo()` | 无 | `void` | 调用 `libentry.stopIoLoad()` 停止 I/O 并删除临时文件 |
+| `stopAll()` | 无 | `void` | 一次调用停止所有 CPU/内存/IO 负载 |
+
+### Model 组函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `testModels()` | 无 | `Promise<void>` | 从 rawfile 加载 InFi (CPU) 和 YOLO (NNRT) 模型，测量加载耗时 |
+
+### Inference Benchmark 函数
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `getBatchSize(modelName)` | `modelName: string` | `number` | 从文件名提取 `_bszN` 中的 N，无匹配返回 1 |
+| `generateRandomInput(batchSize)` | `batchSize: number` | `ArrayBuffer` | 生成 640×640×3×batchSize 的随机 Float32Array 作为推理输入 |
+| `runYoloBenchmark()` | 无 | `Promise<void>` | 加载 YOLO 模型 → 热身 1 次 → 循环 `inferCount` 次推理 → 输出 总时间/平均延迟/FPS/吞吐量 |
+
+### UI Builder
+
+| Builder | 参数 | 说明 |
+|---------|------|------|
+| `sectionTitle(t)` | `t: string` | 渲染区域标题 (15px 粗体) |
+| `metricRow(label, value)` | `label: string, value: string` | 渲染键值行 (当前未使用) |
+
+### 页面布局 (3段式)
+
+```
+┌─────────────────────────────┐
+│  Resource Monitor           │  ← 实时系统指标 (CPU/PSS/内存/热/电池)
+├─────────────────────────────┤
+│  Resource Simulator         │  ← CPU/Memory/IO 负载档位按钮 + Stop All
+├─────────────────────────────┤
+│  Model Selector             │  ← InFi/YOLO 下拉选择 + Test Load
+│  ├ Divider ─────────────────│
+│  └ YOLO Inference Benchmark │  ← Count 输入 + Batch Size + Run 按钮 + 结果
+└─────────────────────────────┘
+```
 
 ## 常见问题
 
