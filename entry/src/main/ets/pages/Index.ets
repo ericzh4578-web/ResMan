@@ -17,6 +17,7 @@ import { SubMainThreadCom } from './SubMainThreadCom';
 import { SyncAndAsyncWork } from './SyncAndAsyncWork';
 import { VideoDecoderPage } from './VideoDecoderPage';
 import { VideoInferencePage } from './VideoInferencePage';
+import { ResourceMonitorPage } from './ResourceMonitorPage';
 
 @Entry
 @Component
@@ -33,6 +34,8 @@ struct Index {
       VideoDecoderPage();
     } else if (name === 'VideoInferencePage') {
       VideoInferencePage();
+    } else if (name === 'ResourceMonitorPage') {
+      ResourceMonitorPage();
     } else {
       Index();
     }
@@ -85,6 +88,15 @@ struct Index {
           .margin({ top: 12 })
           .onClick(() => {
             this.pageInfos.pushPath({ name: 'VideoInferencePage' });
+          })
+
+        Button('Resource Monitor Test')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'ResourceMonitorPage' });
           })
       }
       .width('100%')

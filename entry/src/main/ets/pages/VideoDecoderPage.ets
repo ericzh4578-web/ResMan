@@ -13,28 +13,32 @@
  * limitations under the License.
  */
 
-import libentry from 'libentry.so';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { image } from '@kit.ImageKit';
-import { fileIo } from '@kit.CoreFileKit';
+import { VideoDecoderSession, VideoDecoderSnapshot } from './VideoDecoderSession';
 
 const TAG = 'VideoDecoderPage';
 
 @Entry
 @Component
 export struct VideoDecoderPage {
-  // ── State ──────────────────────────────────────────────────────────────
+  private readonly session: VideoDecoderSession = VideoDecoderSession.getInstance();
+  private readonly sessionListener: (snapshot: VideoDecoderSnapshot) => void = (snapshot: VideoDecoderSnapshot): void => {
+    this.status = snapshot.status;
+    this.frameCount = snapshot.frameCount;
+    this.frameWidth = snapshot.frameWidth;
+    this.frameHeight = snapshot.frameHeight;
+    this.isDecoding = snapshot.isDecoding;
+    this.latestFramePixelMap = snapshot.latestFramePixelMap;
+  };
+
   @State status: string = 'Idle';
   @State frameCount: number = 0;
   @State frameWidth: number = 0;
   @State frameHeight: number = 0;
   @State isDecoding: boolean = false;
-
-  // Latest RGBA frame rendered via PixelMap (optional display)
   @State latestFramePixelMap: PixelMap | undefined = undefined;
 
-  // ── Pick video from device gallery ────────────────────────────────────
   private async pickVideo(): Promise<string | null> {
     try {
       const picker = new photoAccessHelper.PhotoViewPicker();
@@ -53,80 +57,18 @@ export struct VideoDecoderPage {
     return null;
   }
 
-  // ── Start decoding ─────────────────────────────────────────────────────
-  private async startDecode(uri: string): Promise<void> {
-    this.frameCount = 0;
-    this.isDecoding = true;
-    this.status = 'Decoding…';
-
-    let file: fileIo.File | null = null;
-    try {
-      // Open the URI as a file descriptor so Native can use OH_AVSource_CreateWithFD
-      file = await fileIo.open(uri, fileIo.OpenMode.READ_ONLY);
-      const stat = await fileIo.stat(file.fd);
-      const fileSize = stat.size;
-
-      libentry.decodeVideoFrames(
-        file.fd,
-        fileSize,
-        (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => {
-          if (isEos === 1 || frame === null) {
-            this.status = `Done — ${this.frameCount} frames decoded`;
-            this.isDecoding = false;
-            // Close the fd after decoding is complete
-            if (file !== null) {
-              fileIo.close(file.fd).catch((e: Error) => {
-                hilog.warn(0x0000, TAG, 'close fd failed: %{public}s', e.message);
-              });
-              file = null;
-            }
-            hilog.info(0x0000, TAG, 'Decoding finished, total frames: %{public}d', this.frameCount);
-            return;
-          }
-
-          this.frameCount += 1;
-          this.frameWidth = width;
-          this.frameHeight = height;
-          this.renderFrame(frame, width, height);
-
-          hilog.debug(0x0000, TAG, 'Frame #%{public}d  %{public}dx%{public}d  bytes=%{public}d',
-            this.frameCount, width, height, frame.byteLength);
-        },
-        getContext(this).filesDir
-      );
-    } catch (e) {
-      hilog.error(0x0000, TAG, 'startDecode error: %{public}s', JSON.stringify(e));
-      this.status = `Error: ${JSON.stringify(e)}`;
-      this.isDecoding = false;
-      if (file !== null) {
-        fileIo.close(file.fd).catch(() => {});
-      }
-    }
+  aboutToAppear(): void {
+    this.session.subscribe(this.sessionListener);
   }
 
-  // ── Render one RGBA frame into a PixelMap ──────────────────────────────
-  private renderFrame(rgba: ArrayBuffer, width: number, height: number): void {
-    if (this.frameCount % 10 !== 0) return;
-
-    const opts: image.InitializationOptions = {
-      size: { width: width, height: height },
-      pixelFormat: image.PixelMapFormat.RGBA_8888,
-      editable: false,
-    };
-    image.createPixelMap(rgba, opts).then((pm: PixelMap) => {
-      this.latestFramePixelMap = pm;
-    }).catch((e: Error) => {
-      hilog.warn(0x0000, TAG, 'createPixelMap failed: %{public}s', e.message);
-    });
+  aboutToDisappear(): void {
+    this.session.unsubscribe(this.sessionListener);
   }
 
-  // ── UI ─────────────────────────────────────────────────────────────────
   build() {
     NavDestination() {
       Scroll() {
         Column({ space: 16 }) {
-
-          // Preview area
           if (this.latestFramePixelMap !== undefined) {
             Image(this.latestFramePixelMap)
               .width('100%')
@@ -146,7 +88,6 @@ export struct VideoDecoderPage {
             .borderRadius(8)
           }
 
-          // Stats
           Column({ space: 4 }) {
             Text(`Status: ${this.status}`)
               .fontSize(14)
@@ -154,7 +95,7 @@ export struct VideoDecoderPage {
             Text(`Frames decoded: ${this.frameCount}`)
               .fontSize(14)
             if (this.frameWidth > 0) {
-              Text(`Resolution: ${this.frameWidth} × ${this.frameHeight}`)
+              Text(`Resolution: ${this.frameWidth} x ${this.frameHeight}`)
                 .fontSize(14)
             }
           }
@@ -163,8 +104,7 @@ export struct VideoDecoderPage {
           .backgroundColor('#F5F5F5')
           .borderRadius(8)
 
-          // Action button
-          Button(this.isDecoding ? 'Decoding…' : 'Pick Video & Decode')
+          Button(this.isDecoding ? 'Decoding...' : 'Pick Video & Decode')
             .width('100%')
             .enabled(!this.isDecoding)
             .fontWeight(500)
@@ -172,7 +112,7 @@ export struct VideoDecoderPage {
             .onClick(async () => {
               const path = await this.pickVideo();
               if (path) {
-                await this.startDecode(path);
+                await this.session.startDecode(path, getContext(this).filesDir);
               } else {
                 this.status = 'No video selected';
               }
