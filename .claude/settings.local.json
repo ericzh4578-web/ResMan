@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"C:\\\\Program Files\\\\Huawei\\\\DevEco Studio\\\\tools\\\\node\\\\node.exe\" \"C:\\\\Program Files\\\\Huawei\\\\DevEco Studio\\\\tools\\\\hvigor\\\\bin\\\\hvigorw.js\" --mode module -p module=entry@default -p product=default -p requiredDeviceType=phone assembleHap --analyze=normal --parallel --incremental --daemon)"
+      "Bash(\"C:\\\\Program Files\\\\Huawei\\\\DevEco Studio\\\\tools\\\\node\\\\node.exe\" \"C:\\\\Program Files\\\\Huawei\\\\DevEco Studio\\\\tools\\\\hvigor\\\\bin\\\\hvigorw.js\" --mode module -p module=entry@default -p product=default -p requiredDeviceType=phone assembleHap --analyze=normal --parallel --incremental --daemon)",
+      "Bash(node \"D:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw.js\" --mode module -p module=entry@default -p product=default -p requiredDeviceType=phone assembleHap --analyze=normal --parallel --incremental --daemon)"
     ]
   }
 }

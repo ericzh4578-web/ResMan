@@ -21,6 +21,8 @@ import { ResourceMonitorPage } from './ResourceMonitorPage';
 import { ResourceSimulatorPage } from './ResourceSimulatorPage';
 import { ModelSelectorPage } from './ModelSelectorPage';
 import { TestDashboardPage } from './TestDashboardPage';
+import { ExperimentPage } from './ExperimentPage';
+import { ExperimentPage2 } from './ExperimentPage2';
 
 @Entry
 @Component
@@ -45,6 +47,10 @@ struct Index {
       ModelSelectorPage();
     } else if (name === 'TestDashboardPage') {
       TestDashboardPage();
+    } else if (name === 'ExperimentPage') {
+      ExperimentPage();
+    } else if (name === 'ExperimentPage2') {
+      ExperimentPage2();
     } else {
       Index();
     }
@@ -134,6 +140,26 @@ struct Index {
           .margin({ top: 12 })
           .onClick(() => {
             this.pageInfos.pushPath({ name: 'ModelSelectorPage' });
+          })
+
+        Button('Experiment Dashboard')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .backgroundColor('#4CAF50')
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'ExperimentPage' });
+          })
+
+        Button('Experiment Dashboard 2')
+          .width('100%')
+          .fontWeight(500)
+          .fontSize(16)
+          .margin({ top: 12 })
+          .backgroundColor('#2196F3')
+          .onClick(() => {
+            this.pageInfos.pushPath({ name: 'ExperimentPage2' });
           })
       }
       .width('100%')

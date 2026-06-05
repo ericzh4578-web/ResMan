@@ -80,3 +80,16 @@ export const decodeVideoFrames: (
   callback: (frame: ArrayBuffer | null, width: number, height: number, isEos: number) => void,
   filesDir?: string
 ) => void;
+
+/**
+ * SysfsReader — read CPU / GPU frequencies from sysfs.
+ */
+
+/** Read a single CPU core frequency (kHz). coreIndex: 0-based. */
+export const readCpuFreq: (coreIndex: number) => number;
+
+/** Read all CPU core frequencies as a CSV string (core0,core1,... in kHz). */
+export const readCpuFreqsCsv: () => string;
+
+/** Read GPU frequency (kHz). Returns 0 on failure. */
+export const readGpuFreq: () => number;

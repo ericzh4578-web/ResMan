@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\dell\\.ohos\\config\\default_NativeCase_6vJJJoQMSkMO5M6wC0Xphf6QF1aTtgp2kM1QhwN6JEY=.cer",
+          "certpath": "C:\\Users\\20732\\.ohos\\config\\default_ResMan_l116jdTKWbRgZwyurzjmRaOqrCqNk0Jrw5s0FKYnkrI=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B9F786C63D37F879A5EE3E3CE9DEF1059022DEC86B6796C996FD60BF60DCE8E90BD5F9EF11AD518",
-          "profile": "C:\\Users\\dell\\.ohos\\config\\default_NativeCase_6vJJJoQMSkMO5M6wC0Xphf6QF1aTtgp2kM1QhwN6JEY=.p7b",
+          "keyPassword": "0000001BBABA3288C376B5F637C3A442836E1045B1CBA935B4AA6903E5AAECE6C9673DC129052AB7241C87",
+          "profile": "C:\\Users\\20732\\.ohos\\config\\default_ResMan_l116jdTKWbRgZwyurzjmRaOqrCqNk0Jrw5s0FKYnkrI=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\dell\\.ohos\\config\\default_NativeCase_6vJJJoQMSkMO5M6wC0Xphf6QF1aTtgp2kM1QhwN6JEY=.p12",
-          "storePassword": "0000001BDD7BA0C596790D86E3A3E437CBA5A558ECD9D9B5741158547425089409AAE66FC838D0AA394C00"
+          "storeFile": "C:\\Users\\20732\\.ohos\\config\\default_ResMan_l116jdTKWbRgZwyurzjmRaOqrCqNk0Jrw5s0FKYnkrI=.p12",
+          "storePassword": "0000001B9A9AD5B2714600210276B6FA1CECD9945FF4F246BE94A9B2D30CD4911B5CA7B2ABC839B7067B3C"
         }
       }
     ],
