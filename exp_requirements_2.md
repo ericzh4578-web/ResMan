@@ -53,7 +53,34 @@ entry/src/main/
 
 ---
 
+移动端 AI 调度器通常需要根据模型收益和推理成本进行决策，例如模型选择、Early Exit、Inference Filtering、Task Scheduling 等。
+
+这些方法普遍依赖一个隐含假设：
+
+推理成本是稳定的，或者至少与运行环境无关。
+
+然而在真实手机上，推理成本受到 Runtime Context 的显著影响，例如 CPU/GPU 竞争、后台应用、热积累以及 DVFS 状态变化。
+
+对于同一个模型、同一个输入，在不同 Context 下，推理延迟和能耗可能出现数倍差异。
+
+这意味着调度器基于静态成本做出的决策可能不再最优。
+
+为了验证这一问题，我们选择 InFi 作为代表性案例进行分析。
+
+InFi 是一种典型的 Inference Filtering Scheduler。
+
+它使用固定阈值决定是否执行后续重模型。
+
+由于阈值本质上反映了系统对推理成本的估计，因此当 Runtime Context 改变推理成本时，固定阈值可能不再对应最优决策。
+
+如果在 InFi 中观察到这一现象，那么类似的问题也可能出现在其他依赖静态成本估计的调度器中。
+
+因此，我们并不是要证明 InFi 有问题，而是利用 InFi 作为一个可分析、可复现的调度器，研究 Runtime Context 是否会导致调度策略失效，以及最优决策是否会随 Context 变化而漂移。
+
+---
+
 # 二、实验设计
+
 
 整体逻辑: Motivation → Observation (×4) → Method (Oracle + Ablation) → System
 
@@ -87,6 +114,20 @@ entry/src/main/
 ---
 
 ## Exp 2: InFi Static Baseline
+1. 定义集合和符号
+   总图片集合：X = {x₁, x₂, …, x_N}
+   gating 决策：D(x, τ, context) = 1 表示执行重模型，0 表示跳过
+   单张图片推理成本：Cost(x, context)（延迟或能耗）
+   单张图片价值：Benefit(x)，目前可以固定为 1
+2. 效用函数公式
+
+Utility(τ, context) = Σ_{x ∈ X} D(x, τ, context) * Benefit(x) − Σ_{x ∈ X} D(x, τ, context) * Cost(x, context)
+
+解释：
+
+每张被执行的图片贡献 Benefit，同时消耗 Cost
+gating 决策 D(x, τ, context) 决定是否执行
+
 
 **目的**: 使用预计算 InFi 结果 + 真实 COCO 图片，建立 YOLO 推理基线。
 
@@ -127,7 +168,31 @@ RGBA bytes → 一趟循环 → CHW[3,640,640]
 
 **Config 选择器**: 短标签 (`200 samples`, `500 samples` 等), 决定数据集大小
 
-**CSV 输出**: `exp2_infi_coco_baseline_{timestamp}.csv` (14 列)
+**CSV 输出**: `exp2_infi_coco_baseline_{timestamp}.csv` (29 列, 含全量系统指标)
+
+**CSV 列清单 (29 列)**:
+
+| # | 列名 | 来源 | 说明 |
+|---|------|------|------|
+| 1-4 | imgId, file, origResolution, infiPredPerson | InFi JSON | 图像标识 + InFi gating 决策 |
+| 5-8 | infiProbPerson, gtPerson, infiCorrect, infiType | InFi JSON | InFi 置信度 + GT + 混淆矩阵类型 |
+| 9 | yoloModel | 实验参数 | 使用的 YOLO 模型文件名 |
+| 10 | latencyMs | 推理测量 | 单图推理延迟 (batch_latency / bsz) |
+| 11 | prepMs | 预处理测量 | 单图融合预处理耗时 (decode+letterbox+CHW) |
+| 12 | totalMs | 计算 | prepMs + latencyMs 端到端耗时 |
+| 13 | deadlineMiss | 计算 | per-image latency > deadline ? 1 : 0 |
+| 14 | stateName | 实验参数 | 系统状态名 (Exp2 固定为 Idle) |
+| 15-16 | cpuProcPct, cpuSysPct | `hidebug.getCpuUsage()` / `getSystemCpuUsage()` | 进程 CPU% / 系统 CPU% |
+| 17 | pssMb | `hidebug.getPss()` | 进程 PSS 内存 (MB) |
+| 18-20 | availMemMb, totalMemMb, freeMemMb | `hidebug.getSystemMemInfo()` | 系统内存: 可用 / 总量 / 空闲 (MB) |
+| 21 | cpuFreqsKhz | `libentry.readCpuFreqsCsv()` | 所有 CPU 核心频率 (kHz, CSV 格式) |
+| 22 | gpuFreqKhz | `libentry.readGpuFreq()` | GPU 频率 (kHz) |
+| 23 | batterySocPct | `batteryInfo.batterySOC` | 电池电量 (%) |
+| 24 | batteryTempC | `batteryInfo.batteryTemperature` | 电池温度 (°C) |
+| 25-26 | batteryCurrentMa, batteryVoltageMv | `batteryInfo.nowCurrent` / `voltage` | 电池电流 (mA) / 电压 (mV) |
+| 27 | batteryPowerMw | 计算 | current × voltage / 1000 瞬时功率 (mW) |
+| 28 | thermalLevel | `thermal.getThermalLevel()` | 设备热等级 |
+| 29 | preprocessMode | 固定值 | `'fused'` (标记使用融合预处理) |
 
 **运行前需要**:
 - COCO 图片推送到设备: `hdc file send .../val2017/*.jpg data/storage/el2/base/files/COCO_val/`
@@ -224,3 +289,12 @@ cd C:/Users/20732/Desktop/ResMan && node "D:/Program Files/Huawei/DevEco Studio/
 | 06-04 | Inner loop 冗余计算 | 缓存 plane 偏移、预计算行起始、`* norm` 替代 `/ 255` |
 | 06-04 | InFi skip 图片仍被推理 | 新增 Gate toggle + 分批前过滤 |
 | 06-04 | `git checkout -- .` 误回退 Index.ets / Index.d.ts | 手动恢复路由 + NAPI 类型声明 |
+| 06-05 | Exp2 CSV 存在多余未命名列 (prepMs 和 totalMs 之间始终为 0) | 删除行数组中的 `'0'` 占位值, 列数从 19→18, 与 header 对齐 |
+| 06-05 | Exp2 CSV 只记录 3 项系统指标 (CPU/Temp/Freqs) | 扩展 CSV 从 18 列到 29 列, 使用 `MetricsCollector.captureSample()` 捕获全量系统指标 |
+| 06-05 | `ExperimentSample` 缺少 TotalMem / FreeMem | `BaseExperimentRunner.ts`: 新增 `totalMemMb` / `freeMemMb` 字段, `captureSample()` 中填充 |
+| 06-05 | Exp1/4/5/6 误添加 CSV 代码 | 用户确认只需修改 Exp2, 忽略多余变更 |
+| 06-05 | Exp1 残留 `e1Fd` 引用导致 5 ERROR | 补回 Exp1 setInterval 原始代码, 移除 CSV close 行 |
+| 06-05 | 构建验证 | BUILD SUCCESSFUL (12.6s, 0 ERROR, 46 WARN 均为 deprecated API) |
+| 06-05 | Exp2 不支持多状态/τ 对比 (Idea 断层) | 改动A: 添加 System State 下拉选择器; 改动C: stateName 动态化 + CSV 新增 `tauMs` 列; Phase 3 前 applyState + stabilize 5s |
+| 06-05 | 用户确认手动分别控制 τ + state (不循环) | 每次手动选 τ (deadline slider) + state (下拉), 跑一次记录一个 CSV, 事后对比 |
+| 06-05 | 构建验证 2 | BUILD SUCCESSFUL (12.4s, 0 ERROR) |

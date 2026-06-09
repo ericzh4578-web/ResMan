@@ -37,6 +37,8 @@ export interface ExperimentSample {
   gpuFreqKHz: number;
   pssMb: number;
   availableMemMb: number;
+  totalMemMb: number;
+  freeMemMb: number;
   thermalLevel: number;
   batterySOC: number;
   batteryTemp: number;
@@ -66,6 +68,8 @@ export class MetricsCollector {
       gpuFreqKHz: gpuFreqKHz,
       pssMb: Number(hidebug.getPss()) / 1024,
       availableMemMb: Number(systemMemInfo.availableMem) / 1024,
+      totalMemMb: Number(systemMemInfo.totalMem) / 1024,
+      freeMemMb: Number(systemMemInfo.freeMem) / 1024,
       thermalLevel: thermal.getThermalLevel(),
       batterySOC: batteryInfo.batterySOC,
       batteryTemp: (batteryInfo.batteryTemperature as number) / 10.0,

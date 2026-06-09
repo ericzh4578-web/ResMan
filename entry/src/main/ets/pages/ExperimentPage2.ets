@@ -171,12 +171,15 @@ export struct ExperimentPage2 {
   // ── Exp2 state ──
   @State e2ConfigIdx: number = 2;         // which INFI_CONFIG_FILES (default: 200 samples)
   @State e2ModelIdx: number = 3;          // which YOLO model (0=n,1=s,2=m,3=l)
-  @State e2DeadlineMs: number = 150;
+  @State e2Tau: number = 0.5;            // InFi gating threshold: prob_person > τ → run heavy
+  @State e2StateIdx: number = 0;         // which SYSTEM_STATE to run under (default: Idle)
   @State e2Status: string = 'Idle';
   @State e2Results: string = '';
   @State e2Running: boolean = false;
   @State e2CurrentImage: number = 0;
   @State e2CurrentImageFile: string = '';
+  @State e2TotalToInfer: number = 0;     // total images to infer (after gating skip)
+  @State e2InferredCount: number = 0;    // current inference progress count
   @State e2DecodeMs: number = 0;
   @State e2PreprocessMs: number = 0;
   @State e2InferMs: number = 0;
@@ -187,7 +190,6 @@ export struct ExperimentPage2 {
   @State e2TimingLoop: number = 0;     // [5] fused loop ms
   @State e2GatingPass: number = 0;
   @State e2GatingSkip: number = 0;
-  @State e2DeadlineMiss: number = 0;
   @State e2InfiSummary: string = '';
   @State e2Phase: string = '';           // current phase: 'load_json' | 'load_model' | 'inference' | 'done'
   @State e2JsonLoaded: boolean = false;
@@ -235,6 +237,11 @@ export struct ExperimentPage2 {
   private get selectedE1ModelName(): string {
     if (this.e1ModelIdx < 0 || this.e1ModelIdx >= YOLO_MODELS.length) return YOLO_MODELS[0];
     return YOLO_MODELS[this.e1ModelIdx];
+  }
+
+  private get selectedE2State(): SystemStateDef {
+    if (this.e2StateIdx < 0 || this.e2StateIdx >= SYSTEM_STATES.length) return SYSTEM_STATES[0];
+    return SYSTEM_STATES[this.e2StateIdx];
   }
 
   private get selectedScenario(): ScenarioDef {
@@ -581,20 +588,24 @@ export struct ExperimentPage2 {
 
   async runExp2(): Promise<void> {
     if (this.e2Running) return;
+    hilog.info(0x0000, TAG, '[E2] runExp2 START: configIdx=%{public}d, modelIdx=%{public}d, tau=%{public}f, stateIdx=%{public}d, gating=%{public}s',
+      this.e2ConfigIdx, this.e2ModelIdx, this.e2Tau, this.e2StateIdx, this.e2EnableGating ? 'ON' : 'OFF');
     this.e2Running = true;
     this.expRunning = true;
     this.e2Status = 'Phase 1/3: Loading InFi JSON...';
+    hilog.info(0x0000, TAG, '[E2] Phase1 start: loading InFi JSON');
     this.expStatus = 'Loading';
     this.e2Phase = 'load_json';
     this.e2Results = '';
     this.e2CurrentImage = 0;
     this.e2CurrentImageFile = '';
+    this.e2TotalToInfer = 0;
+    this.e2InferredCount = 0;
     this.e2DecodeMs = 0;
     this.e2PreprocessMs = 0;
     this.e2InferMs = 0;
     this.e2GatingPass = 0;
     this.e2GatingSkip = 0;
-    this.e2DeadlineMiss = 0;
     this.e2InfiSummary = '';
     this.e2JsonLoaded = false;
     this.e2ModelLoaded = false;
@@ -602,6 +613,14 @@ export struct ExperimentPage2 {
     const ctx = getContext(this) as common.UIAbilityContext;
     const filesDir = ctx.filesDir;
     try { fileIo.mkdirSync(filesDir + '/experiments2', true); } catch (_) {}
+    this.stateManager.setFilesDir(filesDir);
+
+    // Capture τ and state at run start (fixed for this run)
+    // IMPORTANT: do NOT use getters here — @State getters return undefined in ArkTS
+    const tau = this.e2Tau;                    // InFi gating threshold
+    const e2StateIdx = this.e2StateIdx;        // capture raw @State value
+    const runState = SYSTEM_STATES[e2StateIdx];
+    const stName = runState.name;              // capture state name once
 
     // ═══════════════════════════════════════════════════════════════════
     // Phase 1: Load pre-computed InFi JSON results
@@ -643,53 +662,76 @@ export struct ExperimentPage2 {
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    // Phase 3: Run YOLO inference on COCO images
+    // Phase 3: Apply system state + Run YOLO inference on COCO images
     // ═══════════════════════════════════════════════════════════════════
+
+    // Apply the selected system state's ResourceSimulator load
+    this.stateManager.applyState(runState);
+    // Brief stabilization for the state to take effect
+    await new Promise<void>(r => setTimeout(r, 5000));
+
 
     this.e2Phase = 'inference';
     this.e2Status = 'Phase 3/3: Running inference...';
+    hilog.info(0x0000, TAG, '[E2-Phase3] status→"Running inference..."');
     this.expStatus = 'Running';
     this.startPolling();
+    hilog.info(0x0000, TAG, '[E2-Phase3] startPolling done, opening CSV...');
 
     // Prepare CSV
-    const csvFile = 'exp2_infi_coco_baseline_' + Date.now() + '.csv';
+    const csvFile = 'exp2_infi_coco_' + stName + '_' + (this.e2EnableGating ? 'gate' : 'full') + '_' + Date.now() + '.csv';
     const csvPath = filesDir + '/experiments2/' + csvFile;
     let fd = -1;
     try {
       const f = await fileIo.open(csvPath,
         fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC);
       fd = f.fd;
+      hilog.info(0x0000, TAG, '[E2-Phase3] CSV opened fd=%{public}d', fd);
       const cols = [
         'imgId', 'file', 'origResolution', 'infiPredPerson', 'infiProbPerson',
         'gtPerson', 'infiCorrect', 'infiType',
         'yoloModel', 'latencyMs', 'prepMs', 'totalMs',
-        'deadlineMiss', 'stateName',
-        'snapshotCpu', 'snapshotTemp', 'snapshotFreqs',
-        'preprocessMode',
+        'tau', 'stateName',
+        'cpuProcPct', 'cpuSysPct', 'pssMb', 'availMemMb', 'totalMemMb', 'freeMemMb',
+        'cpuFreqsKhz', 'gpuFreqKhz',
+        'batterySocPct', 'batteryTempC', 'batteryCurrentMa', 'batteryVoltageMv', 'batteryPowerMw',
+        'thermalLevel', 'preprocessMode',
       ];
       await fileIo.write(fd, cols.join(',') + '\n');
-    } catch (_) {}
+      hilog.info(0x0000, TAG, '[E2-Phase3] CSV header written');
+    } catch (e) {
+      hilog.error(0x0000, TAG, '[E2-Phase3] CSV open/write FAILED: %{public}s', JSON.stringify(e));
+      this.e2Status = 'CSV error: ' + JSON.stringify(e);
+      this.expStatus = 'Failed';
+      this.e2Running = false;
+      this.expRunning = false;
+      return;  // abort — can't run without CSV
+    }
 
+    hilog.info(0x0000, TAG, '[E2-Phase3] post-CSV, creating cocoLoader...');
     const cocoLoader = new CocoImagePreprocessor(ctx, COCO_IMAGES_DIR);
+    hilog.info(0x0000, TAG, '[E2-Phase3] cocoLoader created, state=%{public}s', stName);
 
     // Config file determines the dataset size — use all entries
     const imageCount = infiLoader.count;
     let allResults = infiLoader.results.slice(0, imageCount);
+    hilog.info(0x0000, TAG, '[E2-Phase3] sliced %{public}d results, gating=%{public}s',
+      imageCount, this.e2EnableGating ? 'ON' : 'OFF');
 
     // ── Apply InFi gating filter BEFORE batching (if enabled) ──
+    // Gating rule: prob_person > τ → run heavy (pass); else skip
     if (this.e2EnableGating) {
-      // Count skip images (pred_person=0) — they won't be processed
       for (let i = 0; i < allResults.length; i++) {
-        if (allResults[i].pred_person === 0) {
-          this.e2GatingSkip++;
-        } else {
+        if (allResults[i].prob_person > tau) {
           this.e2GatingPass++;
+        } else {
+          this.e2GatingSkip++;
         }
       }
-      // Only keep pass images for inference
-      allResults = allResults.filter((e: InfiResultEntry): boolean => e.pred_person === 1);
-      hilog.info(0x0000, TAG, 'Gating ON: %{public}d/%{public}d images pass (skip=%{public}d)',
-        allResults.length, imageCount, this.e2GatingSkip);
+      allResults = allResults.filter((e: InfiResultEntry): boolean => e.prob_person > tau);
+      const filterRate = imageCount > 0 ? (this.e2GatingSkip / imageCount * 100).toFixed(1) : '0';
+      hilog.info(0x0000, TAG, 'Gating ON τ=%.2f: %{public}d/%{public}d pass, filter=%{public}s%%',
+        tau, allResults.length, imageCount, filterRate);
     }
 
     // Batch size from model name (e.g. yolov8l_bsz4 → bsz=4)
@@ -697,6 +739,9 @@ export struct ExperimentPage2 {
     const results = allResults;
     // Round down to full batches
     const numBatches = Math.floor(results.length / bsz);
+    this.e2TotalToInfer = numBatches * bsz;  // total images that will be inferred (full batches)
+    hilog.info(0x0000, TAG, '[E2-Phase3] bsz=%{public}d, numBatches=%{public}d, totalToInfer=%{public}d',
+      bsz, numBatches, this.e2TotalToInfer);
 
     // Statistics accumulators
     let totalLatency = 0;
@@ -710,9 +755,17 @@ export struct ExperimentPage2 {
 
     this.e2Status = 'Phase 3/3: ' + imageCount + ' images, ' + bsz + '/batch, '
       + numBatches + ' batches';
+    hilog.info(0x0000, TAG, '[E2-Phase3] status→batch info, entering loop...');
 
     for (let bi = 0; bi < numBatches; bi++) {
-      if (!this.e2Running) break;
+      if (!this.e2Running) {
+        hilog.warn(0x0000, TAG, '[E2-Phase3] loop aborted at bi=%{public}d (e2Running=false)', bi);
+        break;
+      }
+
+      if (bi === 0) {
+        hilog.info(0x0000, TAG, '[E2-Phase3] entering first batch (0/%{public}d)', numBatches);
+      }
 
       const batchStart = bi * bsz;
       const batchEntries = results.slice(batchStart, batchStart + bsz);
@@ -723,7 +776,7 @@ export struct ExperimentPage2 {
       // Count gating decisions (only when gating is OFF — otherwise pre-counted)
       if (!this.e2EnableGating) {
         for (let k = 0; k < batchEntries.length; k++) {
-          if (batchEntries[k].pred_person === 1) {
+          if (batchEntries[k].prob_person > tau) {
             this.e2GatingPass++;
           } else {
             this.e2GatingSkip++;
@@ -780,10 +833,8 @@ export struct ExperimentPage2 {
         batchTensor.set(batchChwTensors[k], k * perSample);
       }
 
-      // ── Pre-inference snapshot ──
-      const snapshotCpu = this.expCpuUsage;
-      const snapshotTemp = this.expTemp;
-      const snapshotFreqs = this.expCpuFreqs;
+      // ── Pre-inference snapshot (full system metrics) ──
+      let preSample: ExperimentSample = MetricsCollector.captureSample(0);
 
       // ── Step C: Run YOLO inference (one batch predict) ──
       let batchLatencyMs = -1;
@@ -806,10 +857,6 @@ export struct ExperimentPage2 {
           allLatencies.push(perImageLatency);
         }
 
-        // Deadline check (batch-level)
-        if (perImageLatency > this.e2DeadlineMs) {
-          this.e2DeadlineMiss += bsz;
-        }
       } catch (e) {
         hilog.warn(0x0000, TAG, 'YOLO batch inference failed: %{public}s',
           JSON.stringify(e));
@@ -824,17 +871,32 @@ export struct ExperimentPage2 {
         const fusedPerImage = batchFusedTotalMs / bsz;
         for (let k = 0; k < batchEntries.length; k++) {
           const entry = batchEntries[k];
-          const deadlineMiss = (perImageLat > 0 && perImageLat > this.e2DeadlineMs) ? 1 : 0;
+          // Build per-image row with full system metrics
+          const perImageTotal = perImageLat > 0 ? (fusedPerImage + perImageLat) : -1;
           const row: (string | number)[] = [
             entry.img_id, entry.file, entry.orig_resolution,
             entry.pred_person, entry.prob_person.toFixed(6),
             entry.gt_person, entry.correct, entry.type,
-            yoloModelName, perImageLat > 0 ? perImageLat.toFixed(2) : '-1',
-            fusedPerImage.toFixed(2), '0',  // prepMs = fused, ppMs = 0 (combined)
-            (perImageLat > 0 ? (fusedPerImage + perImageLat).toFixed(2) : '-1'),
-            deadlineMiss, 'Idle',
-            snapshotCpu.toFixed(2), snapshotTemp.toFixed(2), snapshotFreqs,
-            'fused', // preprocessSteps marker
+            yoloModelName,
+            perImageLat > 0 ? perImageLat.toFixed(2) : '-1',
+            fusedPerImage.toFixed(2),
+            perImageTotal > 0 ? perImageTotal.toFixed(2) : '-1',
+            tau.toFixed(3), stName,
+            preSample.cpuUsagePercent.toFixed(2),
+            preSample.systemCpuUsagePercent.toFixed(2),
+            preSample.pssMb.toFixed(2),
+            preSample.availableMemMb.toFixed(2),
+            preSample.totalMemMb.toFixed(2),
+            preSample.freeMemMb.toFixed(2),
+            preSample.cpuFreqsCsv,
+            preSample.gpuFreqKHz,
+            preSample.batterySOC,
+            preSample.batteryTemp.toFixed(2),
+            preSample.batteryCurrent,
+            preSample.batteryVoltage,
+            (preSample.batteryCurrent * preSample.batteryVoltage / 1000).toFixed(2),
+            preSample.thermalLevel,
+            'fused',
           ];
           try { await fileIo.write(fd, row.join(',') + '\n'); } catch (_) {}
         }
@@ -849,15 +911,19 @@ export struct ExperimentPage2 {
         this.expThroughput = successfulInferences / (totalLatency / 1000);
       }
 
+      // Update progress
+      this.e2InferredCount = successfulInferences;
+
       // Update status every batch
-      this.e2Status = 'Phase 3/3: Batch ' + (bi + 1) + '/' + numBatches
-        + ' · ' + successfulInferences + ' imgs done'
+      this.e2Status = '[' + successfulInferences + '/' + this.e2TotalToInfer + ' imgs]'
+        + ' Batch ' + (bi + 1) + '/' + numBatches
         + ' · batch=' + (batchLatencyMs > 0 ? batchLatencyMs.toFixed(1) + 'ms' : 'err')
         + ' · per-img=' + (batchLatencyMs > 0 ? (batchLatencyMs / bsz).toFixed(1) + 'ms' : '-');
     }
 
     if (fd >= 0) try { await fileIo.close(fd); } catch (_) {}
 
+    this.stateManager.stopAll();
     this.stopPolling();
     this.e2Running = false;
     this.expRunning = false;
@@ -886,7 +952,8 @@ export struct ExperimentPage2 {
       report += 'Model: ' + yoloModelName + '\n';
       report += 'Batch size: ' + bsz + ' (batched inference)\n';
       report += 'Inference mode: ' + bsz + ' images/batch → ' + numBatches + ' predict calls\n';
-      report += 'Deadline: ' + this.e2DeadlineMs + 'ms (per-image)\n\n';
+      report += 'InFi Gating τ: ' + tau.toFixed(2) + ' (prob_person > τ → run heavy)\n';
+      report += 'System State: ' + runState.name + '\n\n';
       report += '── Run Summary ──\n';
       report += 'Images: ' + imageCount + ' (from ' + INFI_CONFIG_LABELS[this.e2ConfigIdx] + ')\n';
       report += 'Successful: ' + successfulInferences + ' images (' + successfulBatches + ' batches)\n';
@@ -902,11 +969,15 @@ export struct ExperimentPage2 {
       report += '── Preprocessing (fused decode+letterbox+CHW) ──\n';
       report += 'Avg prep per image: ' + avgPrep.toFixed(2) + 'ms\n';
       report += 'Avg end-to-end:     ' + avgE2E.toFixed(2) + 'ms\n\n';
-      report += '── Gating ──\n';
-      report += 'Pass (InFi→run heavy): ' + this.e2GatingPass + '\n';
-      report += 'Skip (InFi→gated):     ' + this.e2GatingSkip + '\n';
-      report += 'Deadline misses:        ' + this.e2DeadlineMiss
-        + ' (' + (this.e2DeadlineMiss / n * 100).toFixed(1) + '%)\n\n';
+      report += '── Gating (τ=' + tau.toFixed(2) + ') ──\n';
+      report += 'Pass (prob > τ → run): ' + this.e2GatingPass + '\n';
+      report += 'Skip (prob ≤ τ → gate): ' + this.e2GatingSkip + '\n';
+      let filterRate = (this.e2GatingPass + this.e2GatingSkip) > 0
+        ? (this.e2GatingSkip / (this.e2GatingPass + this.e2GatingSkip) * 100).toFixed(1) : '0';
+      report += 'Filter Rate: ' + filterRate + '%\n';
+      let utility = totalLatency > 0
+        ? (successfulInferences / (totalLatency / 1000)).toFixed(2) : '0';
+      report += 'Utility (N_pass / totalLatency): ' + utility + ' img/s\n\n';
       report += 'CSV: ' + csvPath;
       this.e2Results = report;
     } else {
@@ -922,534 +993,6 @@ export struct ExperimentPage2 {
     this.expStatus = 'Done';
   }
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Exp 3: Gain Predictability
-  // ──────────────────────────────────────────────────────────────────────────
-
-  async runExp3(): Promise<void> {
-    if (this.e3Running) return;
-    this.e3Running = true;
-    this.expRunning = true;
-    this.e3Status = 'Loading models...';
-    this.expStatus = 'Loading';
-    this.e3Results = '';
-
-    const filesDir = (getContext(this) as common.UIAbilityContext).filesDir;
-    try { fileIo.mkdirSync(filesDir + '/experiments2', true); } catch (_) {}
-    const csvFile = 'exp3_gain_features_' + Date.now() + '.csv';
-
-    try {
-      const modelN = await this.loadYoloModel(YOLO_MODELS[0]);
-      const modelL = await this.loadYoloModel(YOLO_MODELS[3]);
-      const predictor = new GainPredictor();
-      predictor.load();
-      this.startPolling();
-
-      this.e3Status = 'Running...';
-      this.expStatus = 'Running';
-
-      let fd = -1;
-      const csvPath = filesDir + '/experiments2/' + csvFile;
-      try {
-        const f = await fileIo.open(csvPath,
-          fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC);
-        fd = f.fd;
-        const cols = 'imageIndex,difficulty,brightness,contrast,entropy,edgeDensity,numObjects,avgConfidence,maxConfidence,gainNtoL,predictedGain\n';
-        await fileIo.write(fd, cols);
-      } catch (_) {}
-
-      const difficulties: DifficultyLevel[] = [DifficultyLevel.Easy, DifficultyLevel.Medium, DifficultyLevel.Hard];
-
-      for (let i = 0; i < this.e3ImageCount; i++) {
-        if (!this.e3Running) break;
-        const diff = difficulties[i % difficulties.length];
-        // Generate preprocessed NCHW input (shared across nano and large models)
-        const inputBufferNCHW = SyntheticImageGenerator.getInputForInferenceNCHW({
-          width: 640, height: 640, channels: 3, difficulty: diff, seed: 2000 + i,
-        } as SynthImageConfig, 1);
-
-        // Run nano model and score
-        const modelNInputs = modelN.getInputs();
-        modelNInputs[0].setData(inputBufferNCHW);
-        const outputsN = await modelN.predict(modelNInputs);
-        const qNano = QualityScorer.scoreFromOutputs(outputsN);
-
-        // Extract image features (needs HWC layout — regenerate raw HWC data)
-        const hwcForFeatures = SyntheticImageGenerator.generate(diff, 2000 + i);
-        const features = ImageFeatureExtractor.extractFeatures(hwcForFeatures, qNano);
-
-        // Run large model and score (reuse same NCHW-preprocessed input)
-        const modelLInputs = modelL.getInputs();
-        modelLInputs[0].setData(inputBufferNCHW);
-        const outputsL = await modelL.predict(modelLInputs);
-        const qLarge = QualityScorer.scoreFromOutputs(outputsL);
-
-        // Compute gain
-        const gainNtoL = QualityScorer.computeGain(qNano, qLarge);
-        const predictedGain = predictor.predictGain(features);
-
-        this.expSampleCount = i + 1;
-        this.expElapsedSec = i + 1;
-        this.e3Status = 'Image ' + (i + 1) + '/' + this.e3ImageCount;
-
-        if (fd >= 0) {
-          let diffLabel = diff === DifficultyLevel.Easy ? 'Easy'
-            : (diff === DifficultyLevel.Medium ? 'Medium' : 'Hard');
-          let row: (string | number)[] = [
-            i, diffLabel,
-            features.brightness.toFixed(4), features.contrast.toFixed(4),
-            features.entropy.toFixed(4), features.edgeDensity.toFixed(4),
-            features.numObjects, features.avgConfidence.toFixed(6),
-            features.maxConfidence.toFixed(6),
-            gainNtoL.toFixed(6), predictedGain.toFixed(6),
-          ];
-          try { await fileIo.write(fd, row.join(',') + '\n'); } catch (_) {}
-        }
-      }
-
-      if (fd >= 0) try { await fileIo.close(fd); } catch (_) {}
-
-      this.e3Results = 'Samples collected: ' + this.e3ImageCount + ' → ' + csvPath;
-      this.expCsvPath = csvPath;
-    } catch (e) {
-      this.e3Status = 'Failed: ' + JSON.stringify(e);
-      this.expStatus = 'Failed';
-    }
-
-    this.e3Running = false;
-    this.expRunning = false;
-    this.stopPolling();
-    this.e3Status = 'Done (data collected for offline analysis)';
-    this.expStatus = 'Done';
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Exp 4: Gain-aware Scheduler vs Baselines
-  // ──────────────────────────────────────────────────────────────────────────
-
-  async runExp4(): Promise<void> {
-    if (this.e4Running) return;
-    this.e4Running = true;
-    this.expRunning = true;
-    this.e4Status = 'Running...';
-    this.expStatus = 'Running';
-    this.e4Results = '';
-
-    const st = SYSTEM_STATES[this.e4StateIdx];
-    const filesDir = (getContext(this) as common.UIAbilityContext).filesDir;
-    this.stateManager.applyState(st);
-    this.startPolling();
-
-    // Brief stabilization
-    await new Promise<void>(r => setTimeout(r, 10000));
-
-    try {
-      const models = await this.loadAllModels();
-      const predictor = new GainPredictor();
-      predictor.load();
-
-      let results: Exp4BaselineResult[] = [];
-      const difficulties: DifficultyLevel[] = [DifficultyLevel.Easy, DifficultyLevel.Medium, DifficultyLevel.Hard];
-
-      for (let bi = 0; bi < ALL_BASELINES.length; bi++) {
-        if (!this.e4Running) break;
-        const method = ALL_BASELINES[bi];
-        this.e4Status = 'Testing: ' + baselineLabel(method);
-
-        let totalQuality = 0;
-        let totalEnergy = 0;
-        let totalLatency = 0;
-        let latencyCount = 0;
-        let modelDist: number[] = [0, 0, 0, 0];
-
-        for (let i = 0; i < this.e4ImageCount; i++) {
-          if (!this.e4Running) break;
-          const diff = difficulties[i % difficulties.length];
-          // Generate preprocessed NCHW input (shared across models)
-          const inputBufferNCHW = SyntheticImageGenerator.getInputForInferenceNCHW({
-            width: 640, height: 640, channels: 3, difficulty: diff, seed: 3000 + i,
-          } as SynthImageConfig, 1);
-
-          // Run nano first to get features for decision
-          let chosenMi = 0;
-          if (models[0]) {
-            try {
-              let inputsNano = models[0]!.getInputs();
-              inputsNano[0].setData(inputBufferNCHW);
-              let outputsNano = await models[0]!.predict(inputsNano);
-              const qNano = QualityScorer.scoreFromOutputs(outputsNano);
-
-              // Decision based on method
-              if (method === BaselineMethod.AlwaysN) {
-                chosenMi = 0;
-              } else if (method === BaselineMethod.AlwaysL) {
-                chosenMi = 3;
-              } else if (method === BaselineMethod.ConfidenceThreshold) {
-                chosenMi = qNano.avgConfidence < 0.3 ? 3 : 0;
-              } else if (method === BaselineMethod.DifficultyBased) {
-                const features = ImageFeatureExtractor.extractFeatures(
-                  SyntheticImageGenerator.generate(diff, 3000 + i), qNano);
-                chosenMi = features.entropy > 4.5 ? 3 : (features.entropy > 4.0 ? 2 : 0);
-              } else if (method === BaselineMethod.GainStateAware) {
-                const features = ImageFeatureExtractor.extractFeatures(
-                  SyntheticImageGenerator.generate(diff, 3000 + i), qNano);
-                const gain = predictor.predictGain(features);
-                const headroom = 1.0 - this.expCpuUsage / 100;
-                const score = gain * Math.max(0.1, headroom);
-                if (score > 0.6) chosenMi = 3;
-                else if (score > 0.4) chosenMi = 2;
-                else if (score > 0.2) chosenMi = 1;
-                else chosenMi = 0;
-              }
-
-              totalQuality += qNano.qualityScore;
-            } catch (_) {}
-          }
-
-          modelDist[chosenMi]++;
-
-          // Run chosen model (if not nano, which was already run)
-          if (chosenMi > 0 && models[chosenMi]) {
-            try {
-              const t0 = Date.now();
-              let chosenInputs = models[chosenMi]!.getInputs();
-              chosenInputs[0].setData(inputBufferNCHW);
-              await models[chosenMi]!.predict(chosenInputs);
-              totalLatency += Date.now() - t0;
-              latencyCount++;
-
-              const sample = MetricsCollector.captureSample(0);
-              totalEnergy += sample.batteryCurrent * sample.batteryVoltage / 1000;
-            } catch (_) {}
-          }
-        }
-
-        let entry: Exp4BaselineResult = {
-          method: baselineLabel(method),
-          totalQuality: totalQuality,
-          totalEnergyMw: totalEnergy,
-          avgLatencyMs: latencyCount > 0 ? totalLatency / latencyCount : 0,
-          avgFps: latencyCount > 0 ? 1000 / (totalLatency / latencyCount) : 0,
-          modelDist: modelDist.join('/'),
-        };
-        results.push(entry);
-      }
-
-      let report = '=== Scheduler Comparison ===\n\n';
-      report += 'Method | Quality | Energy(mW) | AvgLat(ms) | FPS | Dist(n/s/m/l)\n';
-      report += '-------|---------|------------|------------|-----|---------------\n';
-      for (let ri = 0; ri < results.length; ri++) {
-        const r = results[ri];
-        report += r.method + ' | ' + r.totalQuality.toFixed(2) + ' | '
-          + r.totalEnergyMw.toFixed(1) + ' | ' + r.avgLatencyMs.toFixed(2) + ' | '
-          + r.avgFps.toFixed(2) + ' | ' + r.modelDist + '\n';
-      }
-      this.e4Results = report;
-    } catch (e) {
-      this.e4Status = 'Failed: ' + JSON.stringify(e);
-      this.expStatus = 'Failed';
-    }
-
-    this.stateManager.stopAll();
-    this.stopPolling();
-    this.e4Running = false;
-    this.expRunning = false;
-    this.e4Status = 'Done';
-    this.expStatus = 'Done';
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Exp 5: Dynamic System Interference
-  // ──────────────────────────────────────────────────────────────────────────
-
-  async runExp5(): Promise<void> {
-    if (this.e5Running) return;
-    this.e5Running = true;
-    this.expRunning = true;
-    this.e5Status = 'Running...';
-    this.expStatus = 'Running';
-    this.e5Results = '';
-
-    const scenario = this.selectedScenario;
-    const filesDir = (getContext(this) as common.UIAbilityContext).filesDir;
-    this.startPolling();
-
-    try {
-      const models = await this.loadAllModels();
-      const predictor = new GainPredictor();
-      predictor.load();
-
-      const methods: BaselineMethod[] = [
-        BaselineMethod.AlwaysN,
-        BaselineMethod.AlwaysL,
-        BaselineMethod.ConfidenceThreshold,
-        BaselineMethod.GainStateAware,
-      ];
-
-      let allResults: Exp5ScenarioResult[] = [];
-
-      for (let mi = 0; mi < methods.length; mi++) {
-        if (!this.e5Running) break;
-        const method = methods[mi];
-        this.e5Status = 'Scenario: ' + scenario.name + ' | Method: ' + baselineLabel(method);
-
-        let totalQuality = 0;
-        let totalEnergy = 0;
-        let totalLatency = 0;
-        let latencyCount = 0;
-        let failures = 0;
-
-        for (let ti = 0; ti < scenario.transitions.length; ti++) {
-          if (!this.e5Running) break;
-          const trans = scenario.transitions[ti];
-          const state = SYSTEM_STATES[trans.stateIndex];
-          this.stateManager.applyState(state);
-
-          // Run for transition duration
-          const tEnd = Date.now() + trans.durationMs;
-          while (Date.now() < tEnd && this.e5Running) {
-            // Generate preprocessed NCHW input
-            const inputBufferNCHW = SyntheticImageGenerator.getInputForInferenceNCHW({
-              width: 640, height: 640, channels: 3, difficulty: DifficultyLevel.Medium, seed: 4000 + latencyCount,
-            } as SynthImageConfig, 1);
-
-            try {
-              if (method === BaselineMethod.AlwaysN && models[0]) {
-                const t0 = Date.now();
-                let inputs = models[0]!.getInputs();
-                inputs[0].setData(inputBufferNCHW);
-                await models[0]!.predict(inputs);
-                totalLatency += Date.now() - t0;
-              } else if (method === BaselineMethod.AlwaysL && models[3]) {
-                const t0 = Date.now();
-                let inputs = models[3]!.getInputs();
-                inputs[0].setData(inputBufferNCHW);
-                await models[3]!.predict(inputs);
-                totalLatency += Date.now() - t0;
-              } else if (method === BaselineMethod.ConfidenceThreshold) {
-                // Run nano, decide
-                if (models[0]) {
-                  let inputs0 = models[0]!.getInputs();
-                  inputs0[0].setData(inputBufferNCHW);
-                  let outputs0 = await models[0]!.predict(inputs0);
-                  const q = QualityScorer.scoreFromOutputs(outputs0);
-                  const t0 = Date.now();
-                  if (q.avgConfidence < 0.3 && models[2]) {
-                    let inputsM = models[2]!.getInputs();
-                    inputsM[0].setData(inputBufferNCHW);
-                    await models[2]!.predict(inputsM);
-                  }
-                  totalLatency += Date.now() - t0;
-                }
-              } else if (method === BaselineMethod.GainStateAware) {
-                // Run nano, extract features, decide
-                if (models[0]) {
-                  let inputs0 = models[0]!.getInputs();
-                  inputs0[0].setData(inputBufferNCHW);
-                  let outputs0 = await models[0]!.predict(inputs0);
-                  const q = QualityScorer.scoreFromOutputs(outputs0);
-                  // Regenerate HWC data for feature extraction
-                  const hwcForFeatures = SyntheticImageGenerator.generate(DifficultyLevel.Medium, 4000 + latencyCount);
-                  const features = ImageFeatureExtractor.extractFeatures(hwcForFeatures, q);
-                  const gain = predictor.predictGain(features);
-                  const headroom = 1.0 - this.expCpuUsage / 100;
-                  const score = gain * Math.max(0.1, headroom);
-                  let chosenMi = score > 0.5 ? 3 : (score > 0.3 ? 2 : 0);
-                  if (chosenMi > 0 && models[chosenMi]) {
-                    let inputsChosen = models[chosenMi]!.getInputs();
-                    inputsChosen[0].setData(inputBufferNCHW);
-                    await models[chosenMi]!.predict(inputsChosen);
-                  }
-                }
-              }
-
-              latencyCount++;
-              const sample = MetricsCollector.captureSample(0);
-              totalEnergy += sample.batteryCurrent * sample.batteryVoltage / 1000;
-            } catch (_) {
-              failures++;
-            }
-
-            await new Promise<void>(r => setTimeout(r, 100));
-          }
-        }
-
-        let r: Exp5ScenarioResult = {
-          scenario: scenario.name,
-          method: baselineLabel(method),
-          totalQuality: totalQuality,
-          totalEnergyMw: totalEnergy,
-          avgLatencyMs: latencyCount > 0 ? totalLatency / latencyCount : 0,
-          failures: failures,
-        };
-        allResults.push(r);
-      }
-
-      let report = '=== Dynamic Interference ===\n\n';
-      report += 'Scenario: ' + scenario.name + '\n\n';
-      report += 'Method | AvgLat(ms) | Energy(mW) | Failures\n';
-      report += '-------|------------|------------|---------\n';
-      for (let ri = 0; ri < allResults.length; ri++) {
-        const r = allResults[ri];
-        report += r.method + ' | ' + r.avgLatencyMs.toFixed(2) + ' | '
-          + r.totalEnergyMw.toFixed(1) + ' | ' + r.failures + '\n';
-      }
-      this.e5Results = report;
-    } catch (e) {
-      this.e5Status = 'Failed: ' + JSON.stringify(e);
-      this.expStatus = 'Failed';
-    }
-
-    this.stateManager.stopAll();
-    this.stopPolling();
-    this.e5Running = false;
-    this.expRunning = false;
-    this.e5Status = 'Done';
-    this.expStatus = 'Done';
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Exp 6: Budget-constrained Video
-  // ──────────────────────────────────────────────────────────────────────────
-
-  async runExp6(): Promise<void> {
-    if (this.e6Running) return;
-    this.e6Running = true;
-    this.expRunning = true;
-    this.e6Status = 'Running...';
-    this.expStatus = 'Running';
-    this.e6Results = '';
-
-    this.startPolling();
-
-    try {
-      const models = await this.loadAllModels();
-      const predictor = new GainPredictor();
-      predictor.load();
-
-      let results: Exp6StrategyResult[] = [];
-
-      for (let si = 0; si < ALL_STRATEGIES.length; si++) {
-        if (!this.e6Running) break;
-        const strategy = ALL_STRATEGIES[si];
-        this.e6Status = 'Strategy: ' + strategyLabel(strategy);
-
-        let totalQuality = 0;
-        let totalEnergy = 0;
-        let framesDone = 0;
-        let modelDist: number[] = [0, 0, 0, 0];
-
-        const difficulties: DifficultyLevel[] = [DifficultyLevel.Easy, DifficultyLevel.Medium, DifficultyLevel.Hard];
-
-        for (let i = 0; i < this.e6FrameCount; i++) {
-          if (!this.e6Running) break;
-          if (totalEnergy >= this.e6BudgetMw) break;
-
-          const diff = difficulties[i % difficulties.length];
-          // Generate preprocessed NCHW input (shared across models)
-          const inputBufferNCHW = SyntheticImageGenerator.getInputForInferenceNCHW({
-            width: 640, height: 640, channels: 3, difficulty: diff, seed: 5000 + i,
-          } as SynthImageConfig, 1);
-
-          let chosenMi = 0;
-          const energyPerSample = 150; // heuristic mW per inference
-
-          if (totalEnergy + energyPerSample * 4 > this.e6BudgetMw) {
-            chosenMi = 0; // force nano if budget low
-          } else if (strategy === AllocationStrategy.Uniform) {
-            chosenMi = 1; // always small
-          } else if (strategy === AllocationStrategy.RandomAlloc) {
-            chosenMi = Math.floor(Math.random() * 4);
-          } else if (strategy === AllocationStrategy.ConfidenceBased) {
-            if (models[0]) {
-              try {
-                let inputs0 = models[0]!.getInputs();
-                inputs0[0].setData(inputBufferNCHW);
-                let outputs0 = await models[0]!.predict(inputs0);
-                const qConf = QualityScorer.scoreFromOutputs(outputs0);
-                chosenMi = qConf.avgConfidence < 0.3 ? 3 : 0;
-              } catch (_) {}
-            }
-          } else if (strategy === AllocationStrategy.GainBased) {
-            if (models[0]) {
-              try {
-                let inputs0 = models[0]!.getInputs();
-                inputs0[0].setData(inputBufferNCHW);
-                let outputs0 = await models[0]!.predict(inputs0);
-                const q = QualityScorer.scoreFromOutputs(outputs0);
-                const hwcForFeatures = SyntheticImageGenerator.generate(diff, 5000 + i);
-                const features = ImageFeatureExtractor.extractFeatures(hwcForFeatures, q);
-                const gain = predictor.predictGain(features);
-                const headroom = 1.0 - this.expCpuUsage / 100;
-                const score = gain * Math.max(0.1, headroom);
-                if (score > 0.6) chosenMi = 3;
-                else if (score > 0.4) chosenMi = 2;
-                else if (score > 0.2) chosenMi = 1;
-              } catch (_) {}
-            }
-          }
-
-          modelDist[chosenMi]++;
-
-          if (chosenMi > 0 && models[chosenMi]) {
-            try {
-              let inputsChosen = models[chosenMi]!.getInputs();
-              inputsChosen[0].setData(inputBufferNCHW);
-              let outputsChosen = await models[chosenMi]!.predict(inputsChosen);
-              const q = QualityScorer.scoreFromOutputs(outputsChosen);
-              totalQuality += q.qualityScore;
-            } catch (_) {}
-          } else if (models[0]) {
-            try {
-              let inputs0 = models[0]!.getInputs();
-              inputs0[0].setData(inputBufferNCHW);
-              let outputs0 = await models[0]!.predict(inputs0);
-              const q = QualityScorer.scoreFromOutputs(outputs0);
-              totalQuality += q.qualityScore;
-            } catch (_) {}
-          }
-
-          totalEnergy += energyPerSample * (chosenMi + 1);
-          framesDone++;
-
-          this.expSampleCount = framesDone;
-          this.expElapsedSec = framesDone;
-          this.e6Status = 'Strategy: ' + strategyLabel(strategy) + ' | Frame: ' + framesDone;
-        }
-
-        let entry: Exp6StrategyResult = {
-          strategy: strategyLabel(strategy),
-          totalQuality: totalQuality,
-          totalEnergyMw: totalEnergy,
-          framesProcessed: framesDone,
-          efficiency: totalEnergy > 0 ? totalQuality / totalEnergy : 0,
-          modelDist: modelDist.join('/'),
-        };
-        results.push(entry);
-      }
-
-      let report = '=== Budget-Constrained Video ===\n\n';
-      report += 'Budget: ' + this.e6BudgetMw.toFixed(0) + ' mW\n\n';
-      report += 'Strategy | Quality | Energy | Frames | Eff(Q/E) | Dist(n/s/m/l)\n';
-      report += '---------|---------|--------|--------|----------|---------------\n';
-      for (let ri = 0; ri < results.length; ri++) {
-        const r = results[ri];
-        report += r.strategy + ' | ' + r.totalQuality.toFixed(2) + ' | '
-          + r.totalEnergyMw.toFixed(1) + ' | ' + r.framesProcessed + ' | '
-          + r.efficiency.toFixed(4) + ' | ' + r.modelDist + '\n';
-      }
-      this.e6Results = report;
-    } catch (e) {
-      this.e6Status = 'Failed: ' + JSON.stringify(e);
-      this.expStatus = 'Failed';
-    }
-
-    this.stopPolling();
-    this.e6Running = false;
-    this.expRunning = false;
-    this.e6Status = 'Done';
-    this.expStatus = 'Done';
-  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // Utility
@@ -1874,16 +1417,31 @@ export struct ExperimentPage2 {
       .backgroundColor('#F5F5F5')
       .borderRadius(4)
 
-      // Deadline slider
+      // τ slider (InFi gating threshold: prob_person > τ → run heavy)
       Column({ space: 4 }) {
-        Text('Deadline: ' + this.e2DeadlineMs + 'ms').fontSize(12).fontWeight(FontWeight.Medium).width('100%')
+        Text('InFi Gating τ: ' + this.e2Tau.toFixed(2)).fontSize(12).fontWeight(FontWeight.Medium).width('100%')
+        Text('  prob_person > τ → run heavy YOLO; higher τ = more filtering, lower cost')
+          .fontSize(9).fontColor('#888').width('100%')
         Slider({
-          value: this.e2DeadlineMs,
-          min: 30, max: 500, step: 10,
+          value: this.e2Tau,
+          min: 0.1, max: 0.9, step: 0.05,
           style: SliderStyle.InSet,
         })
           .width('100%')
-          .onChange((v: number) => { this.e2DeadlineMs = v; })
+          .onChange((v: number) => { this.e2Tau = v; })
+      }.width('100%')
+
+      // System State selector (manual: user sets up device state before running)
+      Column({ space: 4 }) {
+        Text('System State:').fontSize(12).fontWeight(FontWeight.Medium).width('100%')
+        Select(STATE_OPTIONS)
+          .width('100%')
+          .height(36)
+          .selected(this.e2StateIdx)
+          .onSelect((idx: number) => { this.e2StateIdx = idx; })
+        Text('  ' + SYSTEM_STATES[this.e2StateIdx].description)
+          .fontSize(10).fontColor('#888').width('100%')
+          .maxLines(2).textOverflow({ overflow: TextOverflow.Ellipsis })
       }.width('100%')
 
       // Live progress during run
@@ -1891,14 +1449,19 @@ export struct ExperimentPage2 {
         Column({ space: 3 }) {
           Text('Phase: ' + this.e2Phase)
             .fontSize(11).fontWeight(FontWeight.Medium).fontColor('#007DFF').width('100%')
-          Text(this.e2CurrentImageFile)
+          // Inference progress
+          Text('Inference: ' + this.e2InferredCount + ' / ' + this.e2TotalToInfer + ' imgs'
+            + (this.e2TotalToInfer > 0
+              ? ' (' + (this.e2InferredCount / this.e2TotalToInfer * 100).toFixed(0) + '%)' : ''))
             .fontSize(11).fontColor('#333').width('100%')
+          Text(this.e2CurrentImageFile)
+            .fontSize(10).fontColor('#888').width('100%')
             .maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
           Row() {
             Text('Prep: ' + (this.e2DecodeMs > 0 ? this.e2DecodeMs.toFixed(0) + 'ms' : '-'))
               .fontSize(10).fontColor('#555').layoutWeight(1)
             Text('Infer: ' + (this.e2InferMs > 0 ? this.e2InferMs.toFixed(1) + 'ms' : '-'))
-              .fontSize(10).fontColor(this.e2InferMs > this.e2DeadlineMs ? '#C62828' : '#555').layoutWeight(1)
+              .fontSize(10).fontColor(this.e2InferMs > 150 ? '#C62828' : '#555').layoutWeight(1)
             Text('Total: ' + (this.e2DecodeMs > 0 && this.e2InferMs > 0
               ? (this.e2DecodeMs + this.e2InferMs).toFixed(0) + 'ms' : '-'))
               .fontSize(10).fontColor('#333').layoutWeight(1)
@@ -1917,8 +1480,7 @@ export struct ExperimentPage2 {
             }.width('100%')
           }
           Row() {
-            Text('Pass: ' + this.e2GatingPass + ' | Skip: ' + this.e2GatingSkip
-              + ' | Miss: ' + this.e2DeadlineMiss)
+            Text('Pass: ' + this.e2GatingPass + ' | Skip: ' + this.e2GatingSkip)
               .fontSize(10).fontColor('#888').layoutWeight(1)
             Text('JSON: ' + (this.e2JsonLoaded ? '✓' : '✗')
               + '  Model: ' + (this.e2ModelLoaded ? '✓' : '✗'))
